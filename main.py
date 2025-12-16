@@ -36,7 +36,7 @@ class Events:
 ##Running the base application
 class App(Events):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.1]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.2]"):
 		Events.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -47,7 +47,7 @@ class App(Events):
 		self._mainApp.geometry(f"{width}x{height}")
 
 		##Setting up the Main Canvas
-		self._mainCanvas = tkinter.Canvas(self._mainApp, bg="gray", cursor="xterm")
+		self._mainCanvas = tkinter.Canvas(self._mainApp, bg="gray")#,cursor="xterm")
 		self._mainCanvas.grid(column=0, row=0, sticky="NSWE")
 		self._mainApp.columnconfigure(0, weight=10)
 		self._mainApp.rowconfigure(0, weight=10)
@@ -73,7 +73,7 @@ class App(Events):
 Window = App(width=500, height=500)
 Notes = noteBlock(Window.get_mainCanvas())
 
-Window.get_mainCanvas().bind("<Button-1>", Notes.create_note)
+Window.get_mainCanvas().bind("<Button-1>", Notes.onClick)
 
 def refresh():
 	##Controls What to do each time the Window Refreshes

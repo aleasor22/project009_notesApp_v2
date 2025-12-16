@@ -3,98 +3,128 @@ import tkinter.font as tkFont
 from pynput import keyboard
 from PIL import ImageFont
 
-
 __all__ = [
-	"noteWidget",
-	"noteBlock"
+"noteWidget",
+"noteBlock"
 ]
 
 class noteWidget:
 	"""Handles the Contents of an individual note"""
 	def __init__(self, root, ID):
 		self.__root = root
-		self.__maxLength = 0
 		##Start the Listenser
-		self.__listener = keyboard.Listener(on_press=self.pressed, on_release=self.released)
+		self.__listener = None
 		self.isListening = False
 		self.myID = ID
+		self.active = False
 
 		##Text Widget Variables
 		self.__textCanvasID = None
-		self.__wrap = 100
+		self.__wrap = 200
 		self._backSpaceActive = False  ##Tracks if the backspace  has been hit while editing text
-		self._lineCount = 1
 		self.myFont = tkFont.nametofont("TkDefaultFont")
 		self.myFontHeight = self.myFont.metrics('linespace')
 		self.myFontLength = self.myFont.measure("")
 		self.text_offset = 5
-		self.contents = ""
-		
+
+		##String Manipulations
+		self._contents = ""
+		self._currLine = 0
+		self._contentLines = []
+		self._longestLine  = 0
+		self._contentLengthAtLine = {0:0}  
 
 		##Text Box Widget Variables
 		self.__boxCanvasID = None
-		self.coords	 = (0, 0)		##(x, y)
-		self.my_bbox = (0, 0, 0, 0)	##(x1, y1, x2, y2)
-		self.box_offset_x = 20			##The offset from original Top-Left position
+		self.coords  = (0, 0)       ##(x, y)
+		self.my_bbox = (0, 0, 0, 0) ##(x1, y1, x2, y2)
+		self.box_offset_x = 20          ##The offset from original Top-Left position
 		self.box_offset_y = 10
+
 
 	def pressed(self, key):
 		try:
 			# print(f"Key Pressed: {key.char}") ##Used for Debug
-			self.contents += key.char
+			self._contents += key.char
 		except AttributeError:
-			# print(f"Key Pressed: {key}") ##Uded for Debug
+			# print(f"Key Pressed: {key}") ##Used for Debug
 			if key == key.enter:
-				self.contents += "\n"
+				self._contents += "\n"
+				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+				self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
+				self._currLine += 1
+				print(self._contentLines, "append")
 				self.adjustBox()
 				
 			if key == key.space:
-				self.contents += " "
+				self._contents += " "
 			if key == key.tab:
-				self.contents += "\t"
+				self._contents += "\t"
 			if key == key.backspace:
-				# print(self.contents[self.__maxLength-1])
 				self._backSpaceActive = True
-				temp = self.contents
-				if len(temp) > 0:
-					self.contents = temp.rstrip(temp[self.__maxLength-1])
-
-					if temp[self.__maxLength-1] == "\n":# and self._wrapedAtLine[self._lineCount]:
-						self.adjustBox(-1)
-						self._lineCount -= 1
-					
+				self.onBackSpace()
 		finally:
 			##This logic happens no mater the above results
-			self.myFontLength = self.myFont.measure(self.contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
+			self.myFontLength = self.myFont.measure(self._contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
 			# print(f"Add new Key to screen: {key}")
-			print(self.myFontLength)
+			self.__root.itemconfigure(self.__textCanvasID, text=self._contents)
 
-			self.__maxLength = len(self.contents)
-			self.__root.itemconfigure(self.__textCanvasID, text=self.contents)
+			
+			if not self._backSpaceActive:
+				self.adjustBox(expand="x-dir")
 
 			##Resize box on wrap
-			wrapText = (self.__wrap * self._lineCount)
-			# print(self._wrapedAtLine)
-			if self.myFontLength > wrapText and not self._backSpaceActive:
-				self.contents += "\n"
-				self._lineCount += 1
+			wrapText = (self.__wrap * (len(self._contentLines)+1))
+			toWrap = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
+			if toWrap > self.__wrap and not self._backSpaceActive:
+				self._contents += "\n"
+				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+				self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
+				self._currLine += 1
+				print(self._contentLines, "append")
 				self.adjustBox()
 			else:
-				self._backSpaceActive = False ##Only happens once my text width is under the wrap length
-				
+				##Only happens when my text width is under the wrap length
+				self._backSpaceActive = False
+
+			       
+
 
 	def released(self, key):
 		try:
 			temp = key.char
 		except AttributeError:
 			if key == key.f1:
-				print(self.contents)
+				print(self._contents)
 		finally:
 			##This logic happens no mater the above results
 			pass
 	
+	def onBackSpace(self, ):
+		temp = self._contents
+		if len(temp) > 0:
+			self._contents = temp.rstrip(temp[len(self._contents)-1])
+			
+			if temp[len(self._contents)-1] == "\n":# and len(self._contents) > 0:
+				self.adjustBox(-1)
+				if len(self._contentLines) >= 0:
+					self._contentLengthAtLine.popitem()
+					self._contentLines.pop()
+					self._currLine -= 1
+					self.adjustBox(-1)
+					print(self._contentLengthAtLine, "pop")
+			else:
+				self.adjustBox(-1, "x-dir")
+			
+			##Reset variables if self._contents string is empty
+			if len(self._contents) == 0:
+				self._contentLengthAtLine = {0:0}
+				self._contentLines = []
+				self._currLine = 0
+				print(self._contentLengthAtLine, "pop")
+	
 	def newNote(self, event):
-		self.my_bbox = (event.x, event.y, event.x+self.__wrap+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
+		self.my_bbox = (event.x, event.y, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
 		self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
@@ -102,15 +132,59 @@ class noteWidget:
 		self.__textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
 		self.start_Listening()
 
-	def adjustBox(self, addOrRemove=1):
+	def stringWithinRange(self, lowerBound, upperBound):
+		newString = ""
+		for index in range(len(self._contents)):
+			if lowerBound <= index and index <= upperBound:
+				newString += self._contents[index]
+			
+			if index > upperBound:
+				break
+		
+		return newString
+
+	def adjustBox(self, addOrRemove=1, expand="y-dir"):
 		##Remove old Canvas ID
 		self.__root.delete(self.__boxCanvasID)
+		print(f"Modifier: {addOrRemove}")
 
 		##Create New Box
-		self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[3]+(addOrRemove * self.myFontHeight))
+		if expand == "y-dir":
+			self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[3]+(addOrRemove * self.myFontHeight))
+		elif expand == "x-dir":
+			# Once Text length is 75% of box space, expand size based on new text added.
+			# print(f"Length of Longest Line: {self.longestLine()}")
+			currentBoxWidth = (self.my_bbox[2] - self.my_bbox[0])
+			atMaxSize = (currentBoxWidth+(self.myFont.measure(len(self._contents)-1)) >= self.box_offset_x+self.__wrap)
+			atMinSize = (currentBoxWidth <= int(self.__wrap/2)+self.box_offset_x)
+			print(self.longestLine(), "<=", int(1.25 * ((self.__wrap/2)+self.box_offset_x)))
+			if self.longestLine() >= int(0.75 * (self.my_bbox[2]-self.my_bbox[0])) and not atMaxSize:
+				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]+(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+				# print(self.myFontLength)
+			elif self.longestLine() <= int(1.25 * ((self.__wrap/2)+self.box_offset_x)) and not atMinSize:
+				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]-(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+		
+		##Re-create box around text
 		self.__boxCanvasID = self.__root.create_rectangle(self.my_bbox)
 		# self._lineCount += addOrRemove
+	
+	def longestLine(self):
+		##Compare current line with other lines. Determine if the current is the longest
+		maxLength = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
+		for line in self._contentLines:
+			if maxLength < self.myFont.measure(line):
+				maxLength = self.myFont.measure(line)
+		return maxLength
 
+	def withinBounds(self, event):
+		##Retruns True if mouse was clicked inside a text box, else returns false
+		if self.my_bbox[0] < event.x and event.x < self.my_bbox[2]:
+			#Mouse Possition on Click is between x1 and x2
+			if self.my_bbox[1] < event.y and event.y < self.my_bbox[3]:
+				#Mouse Possition on click is between y1 and y2
+				return True
+		return False
+		
 	def set_textID(self, ID):
 		self.__textCanvasID = ID
 
@@ -129,6 +203,7 @@ class noteWidget:
 
 	def start_Listening(self):
 		"""Starts associated keyboard.listener thread"""
+		self.__listener = keyboard.Listener(on_press=self.pressed, on_release=self.released)
 		self.isListening = True
 		self.__listener.start() ##Starts a tread to track for keyboards press/release actions
 
@@ -136,35 +211,53 @@ class noteWidget:
 		"""Stops associated keyboard.listener thread"""
 		self.isListening = False
 		self.__listener.stop()
-			
-
+		
 class noteBlock:
 	"""This Handles Instances of the Note Widget"""
 	def __init__(self, root):
-		self.__root		= root  ##Allows the program to know what canvas item to place to
-		self._newNote 	= False ##True when creating a new note
-		self._activeNote = False ##True when any indidvidual note is in focus
+		self.__root     = root  ##Allows the program to know what canvas item to place to
+		self._activeNoteName = "" ##True when any indidvidual note is in focus
 		self.dictOfNotes = {} ##Key == bbox of a text box
 
-	def create_note(self, event):
-		if not self._newNote:
-			##Fills in Default Data
-			newKey = f"Note-#{len(self.dictOfNotes)}"
-			self.dictOfNotes[newKey] = noteWidget(self.__root, newKey)
-			self.dictOfNotes[newKey].newNote(event)
-
-			self._activeNote = True
-			self._newNote = True
+	def onClick(self, event):
+		if self._activeNoteName == "": ##Checks if a note is active
+			if len(self.dictOfNotes) > 0:
+				self.edit_note(event)
+				if self._activeNoteName == "":
+					self.create_note(event)
+			else:
+				self.create_note(event)
 		else:
-			for key in self.dictOfNotes.keys():
-				if self.dictOfNotes[key].isListening:
-					self.dictOfNotes[key].stop_Listening()
+			##Clears the active note if outside of bounds
+			if not self.dictOfNotes[self._activeNoteName].withinBounds(event):
+				self.dictOfNotes[self._activeNoteName].stop_Listening()
+				self.dictOfNotes[self._activeNoteName].active = False
+				self._activeNoteName = ""
+				##Checks to see if another note was clicked. Only after clicking off the previously active note
+				self.edit_note(event) ##Tries to edit first
+				if self._activeNoteName == "":
+					self.create_note(event) ##If no edits, create a new note instead
+		print(f"Active Note: {self._activeNoteName}")
+	
+	def create_note(self, event):
+		print("Creating a new Note")
+		##Fills in Default Data
+		newKey = f"Note-#{len(self.dictOfNotes)}"
+		self.dictOfNotes[newKey] = noteWidget(self.__root, newKey)
+		self.dictOfNotes[newKey].newNote(event)
+		self.dictOfNotes[newKey].active = True
+		self._activeNoteName = newKey
 
-	def edit_note(self):
-		if self._activeNote:
-			for key in self.dictOfNotes.keys():
-				if self.dictOfNotes[key].isListening:
-					# print(f"Start Listening @{self.dictOfNotes[key].myID}")
-					break
-			pass
-		pass
+
+	def edit_note(self, event):
+		##Determins if a note is to become active
+		for key in self.dictOfNotes.keys():
+			if self.dictOfNotes[key].withinBounds(event):
+				print(f"Edit this box: dictOfNotes[{key}] = {self.dictOfNotes[key]}")
+				self.dictOfNotes[key].active = True
+				self._activeNoteName = key
+				break
+
+		##Reactivate the keyboard listener.
+		if self._activeNoteName != "":
+			self.dictOfNotes[self._activeNoteName].start_Listening()
