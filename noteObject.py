@@ -4,8 +4,8 @@ from pynput import keyboard
 from PIL import ImageFont
 
 __all__ = [
-"noteWidget",
-"noteBlock"
+	"noteWidget",
+	"noteBlock"
 ]
 
 class noteWidget:
@@ -37,8 +37,8 @@ class noteWidget:
 		##Text Box Widget Variables
 		self.__moveCanvasID = None
 		self.__boxCanvasID = None
-		self.coords  = (0, 0)       ##(x, y)
-		self.my_bbox = (0, 0, 0, 0) ##(x1, y1, x2, y2)
+		# self.coords  = (0, 0)       ##(x, y)
+		self.myBbox = (0, 0, 0, 0) ##(x1, y1, x2, y2)
 		self.box_offset_x = 20          ##The offset from original Top-Left position
 		self.box_offset_y = 10
 
@@ -119,12 +119,12 @@ class noteWidget:
 				print(self._contentLengthAtLine, "pop")
 	
 	def newNote(self, event):
-		self.my_bbox = (event.x, event.y-10, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
-		self.coords = (event.x, event.y)
+		self.myBbox = (event.x, event.y-10, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
+		# self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
-		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.my_bbox[1], self.my_bbox[2], event.y)
-		self.__boxCanvasID  = self.__root.create_rectangle(self.my_bbox)
+		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
+		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		self.__textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
 		self.start_Listening()
 
@@ -135,30 +135,30 @@ class noteWidget:
 
 		##Create New Box
 		if expand == "y-dir":
-			self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[3]+(addOrRemove * self.myFontHeight))
+			self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[3]+(addOrRemove * self.myFontHeight))
 		elif expand == "x-dir":
 			self.__root.delete(self.__moveCanvasID)
-			currentBoxWidth = (self.my_bbox[2] - self.my_bbox[0])
+			currentBoxWidth = (self.myBbox[2] - self.myBbox[0])
 
 			##Need to Increase the width when the longest line is at 75% of current size, until max size reached
 			atMaxSize = (currentBoxWidth >= self.__wrap+self.text_offset)
 			increaseSize = (int(0.75 * currentBoxWidth))
 			if self.longestLine() >= increaseSize and not atMaxSize:
-				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]+(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]+(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
 				# print("Get Bigger")
 
 			##Need to Decrease the width when the longest line is at 65% of current size, until min size reached
 			atMinSize = (currentBoxWidth <= int(self.__wrap/2)+self.text_offset)
 			decreaseSize = (int(0.6 * currentBoxWidth))
 			if self.longestLine() >= decreaseSize and self._backSpaceActive and not atMinSize:
-				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]-(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]-(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
 				# print("Get Smaller")
 
 			##Re-Create top box
-			self.__moveCanvasID = self.__root.create_rectangle(self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[1]+10)
+			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 
 		##Re-create box around text
-		self.__boxCanvasID = self.__root.create_rectangle(self.my_bbox)
+		self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 		# self._lineCount += addOrRemove
 
 	def stringWithinRange(self, lowerBound, upperBound):
@@ -182,18 +182,18 @@ class noteWidget:
 
 	def withinBounds(self, event):
 		##Retruns True if mouse was clicked inside a text box, else returns false
-		if self.my_bbox[0] < event.x and event.x < self.my_bbox[2]:
+		if self.myBbox[0] < event.x and event.x < self.myBbox[2]:
 			#Mouse Possition on Click is between x1 and x2
-			if self.my_bbox[1] < event.y and event.y < self.my_bbox[3]:
+			if self.myBbox[1] < event.y and event.y < self.myBbox[3]:
 				#Mouse Possition on click is between y1 and y2
 				return True
 		return False
 	
 	def withinTopOfBox(self, event):
 		##Retruns True if mouse was clicked inside a text box, else returns false
-		if self.my_bbox[0] < event.x and event.x < self.my_bbox[2]:
+		if self.myBbox[0] < event.x and event.x < self.myBbox[2]:
 			#Mouse Possition on Click is between x1 and x2
-			if self.my_bbox[1] < event.y and event.y < self.my_bbox[3]:
+			if self.myBbox[1] < event.y and event.y < self.myBbox[3]:
 				# print("Within top of Box")
 				return True
 		return False
@@ -208,7 +208,7 @@ class noteWidget:
 		# Re-Write these cordinates into the new my_bbox
 
 		##Create New Canvas Widgets
-		self.__boxCanvasID  = self.__root.create_rectangle(self.my_bbox)
+		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		# self.__textCanvasID = self.__root.create_text(text=self._contents)
 		
 	def set_textID(self, ID):
@@ -223,9 +223,12 @@ class noteWidget:
 	def get_boxID(self):
 		return self.__boxCanvasID
 
-	def delete(self, root):
-		root.delete(self.__boxCanvasID)
-		root.delete(self.__textCanvasID)
+	def changeBBox(self, modds: list, addOrRemove: list):
+		##Able to mainipulate the self.myBbox by changing one or all elements of the tuple
+		##Dynamic in a way to know which elements to change
+		##need to know if I'm increasing/decreasing, should this be in a list too?
+		
+		pass
 
 	def start_Listening(self):
 		"""Starts associated keyboard.listener thread"""
@@ -282,7 +285,6 @@ class noteBlock:
 		self.dictOfNotes[newKey].newNote(event)
 		self.dictOfNotes[newKey].active = True
 		self._activeNoteName = newKey
-
 
 	def edit_note(self, event):
 		##Determins if a note is to become active

@@ -36,7 +36,7 @@ class Events:
 ##Running the base application
 class App(Events):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.3]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.31]"):
 		Events.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -77,7 +77,6 @@ Window.get_mainCanvas().bind("<Button-1>", Notes.onClick)
 def refresh():
 	##Controls What to do each time the Window Refreshes
 	#
-	# Notes.edit_note()
 	#
 	#
 	##End of refresh
