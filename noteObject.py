@@ -35,6 +35,7 @@ class noteWidget:
 		self._contentLengthAtLine = {0:0}  
 
 		##Text Box Widget Variables
+		self.__moveCanvasID = None
 		self.__boxCanvasID = None
 		self.coords  = (0, 0)       ##(x, y)
 		self.my_bbox = (0, 0, 0, 0) ##(x1, y1, x2, y2)
@@ -68,13 +69,10 @@ class noteWidget:
 			self.myFontLength = self.myFont.measure(self._contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
 			# print(f"Add new Key to screen: {key}")
 			self.__root.itemconfigure(self.__textCanvasID, text=self._contents)
-
 			
-			if not self._backSpaceActive:
-				self.adjustBox(expand="x-dir")
+			self.adjustBox(expand="x-dir")
 
 			##Resize box on wrap
-			wrapText = (self.__wrap * (len(self._contentLines)+1))
 			toWrap = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
 			if toWrap > self.__wrap and not self._backSpaceActive:
 				self._contents += "\n"
@@ -86,9 +84,6 @@ class noteWidget:
 			else:
 				##Only happens when my text width is under the wrap length
 				self._backSpaceActive = False
-
-			       
-
 
 	def released(self, key):
 		try:
@@ -124,13 +119,47 @@ class noteWidget:
 				print(self._contentLengthAtLine, "pop")
 	
 	def newNote(self, event):
-		self.my_bbox = (event.x, event.y, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
+		self.my_bbox = (event.x, event.y-10, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
 		self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
-		self.__boxCanvasID =  self.__root.create_rectangle(self.my_bbox)
+		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.my_bbox[1], self.my_bbox[2], event.y)
+		self.__boxCanvasID  = self.__root.create_rectangle(self.my_bbox)
 		self.__textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
 		self.start_Listening()
+
+	def adjustBox(self, addOrRemove=1, expand="y-dir"):
+		##Remove old Canvas ID
+		self.__root.delete(self.__boxCanvasID)
+		# print(f"Modifier: {addOrRemove}")
+
+		##Create New Box
+		if expand == "y-dir":
+			self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[3]+(addOrRemove * self.myFontHeight))
+		elif expand == "x-dir":
+			self.__root.delete(self.__moveCanvasID)
+			currentBoxWidth = (self.my_bbox[2] - self.my_bbox[0])
+
+			##Need to Increase the width when the longest line is at 75% of current size, until max size reached
+			atMaxSize = (currentBoxWidth >= self.__wrap+self.text_offset)
+			increaseSize = (int(0.75 * currentBoxWidth))
+			if self.longestLine() >= increaseSize and not atMaxSize:
+				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]+(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+				# print("Get Bigger")
+
+			##Need to Decrease the width when the longest line is at 65% of current size, until min size reached
+			atMinSize = (currentBoxWidth <= int(self.__wrap/2)+self.text_offset)
+			decreaseSize = (int(0.6 * currentBoxWidth))
+			if self.longestLine() >= decreaseSize and self._backSpaceActive and not atMinSize:
+				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]-(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
+				# print("Get Smaller")
+
+			##Re-Create top box
+			self.__moveCanvasID = self.__root.create_rectangle(self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[1]+10)
+
+		##Re-create box around text
+		self.__boxCanvasID = self.__root.create_rectangle(self.my_bbox)
+		# self._lineCount += addOrRemove
 
 	def stringWithinRange(self, lowerBound, upperBound):
 		newString = ""
@@ -143,31 +172,6 @@ class noteWidget:
 		
 		return newString
 
-	def adjustBox(self, addOrRemove=1, expand="y-dir"):
-		##Remove old Canvas ID
-		self.__root.delete(self.__boxCanvasID)
-		print(f"Modifier: {addOrRemove}")
-
-		##Create New Box
-		if expand == "y-dir":
-			self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2], self.my_bbox[3]+(addOrRemove * self.myFontHeight))
-		elif expand == "x-dir":
-			# Once Text length is 75% of box space, expand size based on new text added.
-			# print(f"Length of Longest Line: {self.longestLine()}")
-			currentBoxWidth = (self.my_bbox[2] - self.my_bbox[0])
-			atMaxSize = (currentBoxWidth+(self.myFont.measure(len(self._contents)-1)) >= self.box_offset_x+self.__wrap)
-			atMinSize = (currentBoxWidth <= int(self.__wrap/2)+self.box_offset_x)
-			print(self.longestLine(), "<=", int(1.25 * ((self.__wrap/2)+self.box_offset_x)))
-			if self.longestLine() >= int(0.75 * (self.my_bbox[2]-self.my_bbox[0])) and not atMaxSize:
-				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]+(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
-				# print(self.myFontLength)
-			elif self.longestLine() <= int(1.25 * ((self.__wrap/2)+self.box_offset_x)) and not atMinSize:
-				self.my_bbox = (self.my_bbox[0], self.my_bbox[1], self.my_bbox[2]-(self.myFont.measure(len(self._contents)-1)), self.my_bbox[3])
-		
-		##Re-create box around text
-		self.__boxCanvasID = self.__root.create_rectangle(self.my_bbox)
-		# self._lineCount += addOrRemove
-	
 	def longestLine(self):
 		##Compare current line with other lines. Determine if the current is the longest
 		maxLength = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
@@ -184,6 +188,28 @@ class noteWidget:
 				#Mouse Possition on click is between y1 and y2
 				return True
 		return False
+	
+	def withinTopOfBox(self, event):
+		##Retruns True if mouse was clicked inside a text box, else returns false
+		if self.my_bbox[0] < event.x and event.x < self.my_bbox[2]:
+			#Mouse Possition on Click is between x1 and x2
+			if self.my_bbox[1] < event.y and event.y < self.my_bbox[3]:
+				# print("Within top of Box")
+				return True
+		return False
+
+	def moveBox(self, event):
+		##Remove previous Canvas Widgets
+		self.__root.delete(self.__boxCanvasID)
+		self.__root.delete(self.__textCanvasID)
+
+		##Needs to move Box & Text with mouse
+		# Event .x/.y is based on current mouse position
+		# Re-Write these cordinates into the new my_bbox
+
+		##Create New Canvas Widgets
+		self.__boxCanvasID  = self.__root.create_rectangle(self.my_bbox)
+		# self.__textCanvasID = self.__root.create_text(text=self._contents)
 		
 	def set_textID(self, ID):
 		self.__textCanvasID = ID
@@ -215,11 +241,21 @@ class noteWidget:
 class noteBlock:
 	"""This Handles Instances of the Note Widget"""
 	def __init__(self, root):
-		self.__root     = root  ##Allows the program to know what canvas item to place to
-		self._activeNoteName = "" ##True when any indidvidual note is in focus
-		self.dictOfNotes = {} ##Key == bbox of a text box
+		self.__root = root				##Allows the program to know what canvas item to place to
+		self._activeNoteName = ""		##The name of the note that's in focus
+		self._activeNoteMove = False	##True when a box is being moved
+		self.dictOfNotes = {}			##Key == bbox of a text box
 
 	def onClick(self, event):
+		print(f"Active Note: {self._activeNoteName}")
+		print(f"Active Move: {self._activeNoteMove}")
+		if not self._activeNoteMove:
+			for object in self.dictOfNotes.values():
+				if object.withinTopOfBox(event):
+					self.__root.bind("<Motion>", object.moveBox)
+					self._activeNoteName = object.myID
+					self._activeNoteMove = True
+		
 		if self._activeNoteName == "": ##Checks if a note is active
 			if len(self.dictOfNotes) > 0:
 				self.edit_note(event)
@@ -237,7 +273,6 @@ class noteBlock:
 				self.edit_note(event) ##Tries to edit first
 				if self._activeNoteName == "":
 					self.create_note(event) ##If no edits, create a new note instead
-		print(f"Active Note: {self._activeNoteName}")
 	
 	def create_note(self, event):
 		print("Creating a new Note")
