@@ -8,36 +8,112 @@ class Events:
 	def __init__(self):
 		self._mainApp = None
 		self._mainCanvas = None
+		self.__noteBlock = None
 
-		self.__mouseX = 0
-		self.__mouseY = 0
-		self.clickCounter = 0
+		self._fileLocation = "history/test.csv"
 
 	def kill(self, event):
 		self._mainApp.destroy()
 
-	def onClick(self, event):
-		self.clickCounter += 1
+	def clearScreen(self):
+		self.__noteBlock.clearScreen()
+		with open("history/test.csv", "w") as file:
+			file.write("")
+	
+	def save(self): ##Using the CSV format (Comma Separated Values)
+		dictOfNotes = self.__noteBlock.dictOfNotes
+		with open("history/test.csv", "w") as file:
+			for noteObj in dictOfNotes.values():
+				if noteObj.myFontLength > 0:
+					##This is set up to ignore notes that have no text. 
+					#	However, if there are three notes, and note ID "Note-#1" gets erased that way, when a new note is created
+					#	It over writes "Note-#2" and erases "Note-#0"
+					noteObj.saveToFile(file)
+				else:
+					continue
 
-	def updateMousePosition(self, event):
-		self.__mouseX = event.x
-		self.__mouseY = event.y
-		# print(self.__mouseX, self.__mouseY)
-	
-	def get_mousePosition(self):
-		return (self.__mouseX, self.__mouseY)
-	
+	def open(self):
+		self.__noteBlock.clearScreen()
+		dictOfNotes = self.__noteBlock.dictOfNotes
+		with open("history/test.csv") as file:
+			currKey  = ""
+			currWord = ""
+			for line in file:
+				if (line[0]+line[1] != "//"):
+					for char in line:
+						if char == "," or char == "\n":
+							if currKey == "":
+								dictOfNotes[currWord] = noteWidget(self._mainCanvas, currWord)
+								currKey   = currWord
+								currWord  = ""
+								continue
+							dictOfNotes[currKey].loadFromFile(currWord)
+							currWord = ""
+							continue
+						currWord += char
+					currKey = ""
+
+	##---Basic Methods & Getters/Setters---##
+	def test(self): 
+		##used to test events - Often a placeholder
+		print("Event Tested")
+
 	def get_mainCanvas(self):
 		return self._mainCanvas
 	
 	def get_mainApp(self):
 		return self._mainApp
+	
+	def set_noteData(self, data):
+		self.__noteBlock = data
+
+class Menu(Events):
+	def __init__(self):
+		Events.__init__(self)
+		self.__mainMenu = None
+
+		##Parent Menu Dropdowns
+		self._parentMenus = {
+			"File":		None, 
+			"Edit":		None, 
+			"View":		None, 
+			"Setting":	None, 
+			"Help":		None, 
+		}
+		self._childMenus = {
+			"File":	[], 
+			"Edit":	[], 
+			"View":	[],			
+		}
+		# self._defaultCommand = {
+		# 	"Settings": self.default,
+		# 	"Help":		self.default,
+		# }
+	
+	def menuSetUp(self):
+		self.__mainMenu = tkinter.Menu(self._mainApp)
+
+		for key in self._parentMenus.keys():
+			self._parentMenus[key] = tkinter.Menu(self.__mainMenu, tearoff=False)
+			self.__mainMenu.add_cascade(label=key, menu=self._parentMenus[key])
+		
+		self._mainApp.config(menu=self.__mainMenu)
+
+	def createChildMenu(self, root:str, childLabel:str, function):
+		self._childMenus[root].append((childLabel, function))
+	
+	def childMenuPush(self):
+		for key, value in self._childMenus.items():
+			if len(value) > 0:
+				##tuple = ("Menu Label", function)
+				for tuple in value:
+					self._parentMenus[key].add_cascade(label=tuple[0], command=tuple[1])
 
 ##Running the base application
-class App(Events):
+class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.31]"):
-		Events.__init__(self)
+	def __init__(self, width, height, titleString="Notes App [v0.0.41]"):
+		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
 
@@ -45,6 +121,13 @@ class App(Events):
 		self._mainApp = tkinter.Tk()
 		self._mainApp.title(titleString)
 		self._mainApp.geometry(f"{width}x{height}")
+
+		##Setting up the Tkinter Menus
+		self.menuSetUp()
+		self.createChildMenu("File", "Save", self.save)
+		self.createChildMenu("File", "Open", self.open)
+		self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
+		self.childMenuPush()		
 
 		##Setting up the Main Canvas
 		self._mainCanvas = tkinter.Canvas(self._mainApp, bg="gray")#,cursor="xterm")
@@ -55,9 +138,15 @@ class App(Events):
 
 		##Declaring Bindings
 		self._mainApp.bind_all("<Escape>", self.kill)
-		self._mainApp.bind_all("<Motion>", self.updateMousePosition)
 
 	def startApp(self):
+		##Loads Last Save at launch
+		try:
+			self.open()
+		except FileNotFoundError:
+			with open(self._fileLocation, "w") as f:
+				f.write("")
+
 		##Renders Window to Screen
 		self._mainApp.mainloop()
 	
@@ -71,6 +160,7 @@ class App(Events):
 ##Running the Program
 Window = App(width=500, height=500)
 Notes = noteBlock(Window.get_mainCanvas())
+Window.set_noteData(Notes)
 
 Window.get_mainCanvas().bind("<Button-1>", Notes.onClick)
 

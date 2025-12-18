@@ -1,7 +1,7 @@
 import tkinter
 import tkinter.font as tkFont 
 from pynput import keyboard
-from PIL import ImageFont
+##from PIL import ImageFont
 
 __all__ = [
 	"noteWidget",
@@ -38,10 +38,22 @@ class noteWidget:
 		self.__moveCanvasID = None
 		self.__boxCanvasID = None
 		# self.coords  = (0, 0)       ##(x, y)
-		self.myBbox = (0, 0, 0, 0) ##(x1, y1, x2, y2)
+		self.myBbox = [] ##(x1, y1, x2, y2)
 		self.box_offset_x = 20          ##The offset from original Top-Left position
 		self.box_offset_y = 10
 
+		##SAVE/LOAD from Files:
+		self.listOfKeyWords = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
+		self.stringBuilder = False
+		self.drawBox = False
+		self.trueEnd = False
+
+	def deleteCanvasIDs(self):
+		self.__root.delete(self.__boxCanvasID)
+		self.__root.delete(self.__moveCanvasID)
+		self.__root.delete(self.__textCanvasID)
+		if self.isListening:
+			self.stop_Listening()
 
 	def pressed(self, key):
 		try:
@@ -67,8 +79,8 @@ class noteWidget:
 		finally:
 			##This logic happens no mater the above results
 			self.myFontLength = self.myFont.measure(self._contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
-			# print(f"Add new Key to screen: {key}")
 			self.__root.itemconfigure(self.__textCanvasID, text=self._contents)
+			# print(f"Add new Key to screen: {key}")
 			
 			self.adjustBox(expand="x-dir")
 
@@ -211,6 +223,57 @@ class noteWidget:
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		# self.__textCanvasID = self.__root.create_text(text=self._contents)
 		
+	def loadFromFile(self, currWord):
+		#KEY WORDS = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
+		if currWord == self.listOfKeyWords[1]: ##Start of Contents
+			self.stringBuilder = True
+			print("Start Contents")
+		elif currWord == self.listOfKeyWords[2]: ##Start of Bound Box Coords
+			self.drawBox = True
+			print("Box Position")
+		elif currWord == self.listOfKeyWords[0]: ##End of any variable type
+			self.stringBuilder = False
+			self.drawBox = False
+			print("END")
+		elif currWord == self.listOfKeyWords[3]: ##End of File
+			print("Does this work?")
+			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
+			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
+			self._currLine = len(self._contentLines)
+
+		if currWord not in self.listOfKeyWords:
+			print(currWord)
+			if self.stringBuilder:
+				self._contents += f"{currWord}\n"
+				self._contentLines.append(f"{currWord}\n")
+				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+			elif self.drawBox:
+				self.myBbox.append(int(currWord))
+		
+	def saveToFile(self, file):		
+		#KEY WORDS = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
+		# Need to save Note ID
+		file.write(f"{self.myID},")
+
+		# Need to Save self._contents
+		#	Use the self._contentLines instead?
+		##CURRENT METHOD
+		file.write("START CONTENTS:,")
+		for char in self._contents:
+			if char == "\n":
+				file.write(",")
+				continue
+			file.write(char)
+		file.write(",:END,")
+
+		#Save the bbox of note box
+		stringBox = ""
+		for coord in self.myBbox:
+			stringBox += f"{coord},"
+		file.write(f"START BOUND BOX:,{stringBox}END:")
+		file.write("\n")
+
 	def set_textID(self, ID):
 		self.__textCanvasID = ID
 
@@ -227,7 +290,6 @@ class noteWidget:
 		##Able to mainipulate the self.myBbox by changing one or all elements of the tuple
 		##Dynamic in a way to know which elements to change
 		##need to know if I'm increasing/decreasing, should this be in a list too?
-		
 		pass
 
 	def start_Listening(self):
@@ -250,14 +312,12 @@ class noteBlock:
 		self.dictOfNotes = {}			##Key == bbox of a text box
 
 	def onClick(self, event):
-		print(f"Active Note: {self._activeNoteName}")
-		print(f"Active Move: {self._activeNoteMove}")
-		if not self._activeNoteMove:
-			for object in self.dictOfNotes.values():
-				if object.withinTopOfBox(event):
-					self.__root.bind("<Motion>", object.moveBox)
-					self._activeNoteName = object.myID
-					self._activeNoteMove = True
+		# if not self._activeNoteMove:
+		# 	for object in self.dictOfNotes.values():
+		# 		if object.withinTopOfBox(event):
+		# 			self.__root.bind("<Motion>", object.moveBox)
+		# 			self._activeNoteName = object.myID
+		# 			self._activeNoteMove = True
 		
 		if self._activeNoteName == "": ##Checks if a note is active
 			if len(self.dictOfNotes) > 0:
@@ -276,7 +336,17 @@ class noteBlock:
 				self.edit_note(event) ##Tries to edit first
 				if self._activeNoteName == "":
 					self.create_note(event) ##If no edits, create a new note instead
+		
+		##For Debuging
+		print(f"Active Note: {self._activeNoteName}")
+		print(f"Active Move: {self._activeNoteMove}")
 	
+	def clearScreen(self):
+		for values in self.dictOfNotes.values():
+			values.deleteCanvasIDs()
+		self.dictOfNotes = {}
+		self._activeNoteName = ""
+
 	def create_note(self, event):
 		print("Creating a new Note")
 		##Fills in Default Data
