@@ -17,41 +17,34 @@ class Events:
 
 	def clearScreen(self):
 		self.__noteBlock.clearScreen()
-		with open("history/test.csv", "w") as file:
+		with open(self._fileLocation, "w") as file:
 			file.write("")
 	
 	def save(self): ##Using the CSV format (Comma Separated Values)
 		dictOfNotes = self.__noteBlock.dictOfNotes
-		with open("history/test.csv", "w") as file:
+		with open(self._fileLocation, "w") as file:
 			for noteObj in dictOfNotes.values():
-				if noteObj.myFontLength > 0:
-					##This is set up to ignore notes that have no text. 
-					#	However, if there are three notes, and note ID "Note-#1" gets erased that way, when a new note is created
-					#	It over writes "Note-#2" and erases "Note-#0"
-					noteObj.saveToFile(file)
-				else:
+				if len(noteObj.get_contents()) == 0:
+					##Ignores Empty Notes When Saving
 					continue
+				noteObj.saveToFile(file)
+				
 
 	def open(self):
 		self.__noteBlock.clearScreen()
 		dictOfNotes = self.__noteBlock.dictOfNotes
-		with open("history/test.csv") as file:
-			currKey  = ""
+		with open(self._fileLocation) as file:
 			currWord = ""
 			for line in file:
 				if (line[0]+line[1] != "//"):
+					newKey = f"Note-#{len(dictOfNotes)}"
+					dictOfNotes[newKey] = noteWidget(self._mainCanvas, newKey)
 					for char in line:
 						if char == "," or char == "\n":
-							if currKey == "":
-								dictOfNotes[currWord] = noteWidget(self._mainCanvas, currWord)
-								currKey   = currWord
-								currWord  = ""
-								continue
-							dictOfNotes[currKey].loadFromFile(currWord)
+							dictOfNotes[newKey].loadFromFile(currWord)
 							currWord = ""
 							continue
 						currWord += char
-					currKey = ""
 
 	##---Basic Methods & Getters/Setters---##
 	def test(self): 
@@ -112,7 +105,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.41]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.42]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)

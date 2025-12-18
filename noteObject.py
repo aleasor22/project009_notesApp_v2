@@ -43,7 +43,7 @@ class noteWidget:
 		self.box_offset_y = 10
 
 		##SAVE/LOAD from Files:
-		self.listOfKeyWords = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
+		self.listOfKeyWords = [":END", "START CONTENTS:", "START BOX:", "END:"]
 		self.stringBuilder = False
 		self.drawBox = False
 		self.trueEnd = False
@@ -224,26 +224,25 @@ class noteWidget:
 		# self.__textCanvasID = self.__root.create_text(text=self._contents)
 		
 	def loadFromFile(self, currWord):
-		#KEY WORDS = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
+		#KEY WORDS = [":END", "START CONTENTS:", "START BOX:", "END:"]
 		if currWord == self.listOfKeyWords[1]: ##Start of Contents
 			self.stringBuilder = True
-			print("Start Contents")
+			# print("Start Contents")
 		elif currWord == self.listOfKeyWords[2]: ##Start of Bound Box Coords
 			self.drawBox = True
-			print("Box Position")
+			# print("Box Position")
 		elif currWord == self.listOfKeyWords[0]: ##End of any variable type
 			self.stringBuilder = False
 			self.drawBox = False
-			print("END")
+			# print("END")
 		elif currWord == self.listOfKeyWords[3]: ##End of File
-			print("Does this work?")
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self._currLine = len(self._contentLines)
 
 		if currWord not in self.listOfKeyWords:
-			print(currWord)
+			# print(currWord)
 			if self.stringBuilder:
 				self._contents += f"{currWord}\n"
 				self._contentLines.append(f"{currWord}\n")
@@ -252,13 +251,9 @@ class noteWidget:
 				self.myBbox.append(int(currWord))
 		
 	def saveToFile(self, file):		
-		#KEY WORDS = [":END", "START CONTENTS:", "START BOUND BOX:", "END:"]
-		# Need to save Note ID
-		file.write(f"{self.myID},")
-
+		#KEY WORDS = [":END", "START CONTENTS:", "START BOX:", "END:"]
 		# Need to Save self._contents
 		#	Use the self._contentLines instead?
-		##CURRENT METHOD
 		file.write("START CONTENTS:,")
 		for char in self._contents:
 			if char == "\n":
@@ -271,7 +266,7 @@ class noteWidget:
 		stringBox = ""
 		for coord in self.myBbox:
 			stringBox += f"{coord},"
-		file.write(f"START BOUND BOX:,{stringBox}END:")
+		file.write(f"START BOX:,{stringBox}END:")
 		file.write("\n")
 
 	def set_textID(self, ID):
@@ -285,6 +280,9 @@ class noteWidget:
 
 	def get_boxID(self):
 		return self.__boxCanvasID
+	
+	def get_contents(self):
+		return self._contents
 
 	def changeBBox(self, modds: list, addOrRemove: list):
 		##Able to mainipulate the self.myBbox by changing one or all elements of the tuple
