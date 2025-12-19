@@ -28,11 +28,11 @@ class Events:
 					##Ignores Empty Notes When Saving
 					continue
 				noteObj.saveToFile(file)
-				
 
 	def open(self):
 		self.__noteBlock.clearScreen()
 		dictOfNotes = self.__noteBlock.dictOfNotes
+		stepCount = 0
 		with open(self._fileLocation) as file:
 			currWord = ""
 			for line in file:
@@ -41,7 +41,7 @@ class Events:
 					dictOfNotes[newKey] = noteWidget(self._mainCanvas, newKey)
 					for char in line:
 						if char == "," or char == "\n":
-							dictOfNotes[newKey].loadFromFile(currWord)
+							stepCount = dictOfNotes[newKey].loadFromFile(stepCount, currWord)
 							currWord = ""
 							continue
 						currWord += char
@@ -105,7 +105,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.42]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.43]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)

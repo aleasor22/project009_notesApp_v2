@@ -43,10 +43,9 @@ class noteWidget:
 		self.box_offset_y = 10
 
 		##SAVE/LOAD from Files:
-		self.listOfKeyWords = [":END", "START CONTENTS:", "START BOX:", "END:"]
-		self.stringBuilder = False
-		self.drawBox = False
-		self.trueEnd = False
+		self.listOfKeyWords = [":END", "//"]
+		# self.stepCount = 0 May not be used anymore.
+		self.maxSteps = 2 #Tracks the  different types of data + 1
 
 	def deleteCanvasIDs(self):
 		self.__root.delete(self.__boxCanvasID)
@@ -223,38 +222,36 @@ class noteWidget:
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		# self.__textCanvasID = self.__root.create_text(text=self._contents)
 		
-	def loadFromFile(self, currWord):
-		#KEY WORDS = [":END", "START CONTENTS:", "START BOX:", "END:"]
-		if currWord == self.listOfKeyWords[1]: ##Start of Contents
-			self.stringBuilder = True
-			# print("Start Contents")
-		elif currWord == self.listOfKeyWords[2]: ##Start of Bound Box Coords
-			self.drawBox = True
-			# print("Box Position")
-		elif currWord == self.listOfKeyWords[0]: ##End of any variable type
-			self.stringBuilder = False
-			self.drawBox = False
-			# print("END")
-		elif currWord == self.listOfKeyWords[3]: ##End of File
+	def loadFromFile(self, stepCount, currString):
+		#KEY WORDS = [":END", "//"]
+		if currString in self.listOfKeyWords:
+			stepCount += 1
+		else:
+			##Step 0: Any information read here, will be for the Text Portion of the note
+			if stepCount == 0:
+				self._contents += currString
+				self._contentLines.append(f"{currString}\n")
+				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+				# print(f"TEXT: {self._contents}")
+			
+			##Step 1: Following info will be related to Drawn Note Box
+			if stepCount == 1:
+				# print(f"BBOX: {currString}")
+				self.myBbox.append(int(currString))
+			
+		if stepCount == self.maxSteps:
+			print("END OF LINE")
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self._currLine = len(self._contentLines)
-
-		if currWord not in self.listOfKeyWords:
-			# print(currWord)
-			if self.stringBuilder:
-				self._contents += f"{currWord}\n"
-				self._contentLines.append(f"{currWord}\n")
-				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-			elif self.drawBox:
-				self.myBbox.append(int(currWord))
+		
+		return stepCount
 		
 	def saveToFile(self, file):		
-		#KEY WORDS = [":END", "START CONTENTS:", "START BOX:", "END:"]
+		#KEY WORDS = [":END", "//"]
 		# Need to Save self._contents
 		#	Use the self._contentLines instead?
-		file.write("START CONTENTS:,")
 		for char in self._contents:
 			if char == "\n":
 				file.write(",")
@@ -266,7 +263,7 @@ class noteWidget:
 		stringBox = ""
 		for coord in self.myBbox:
 			stringBox += f"{coord},"
-		file.write(f"START BOX:,{stringBox}END:")
+		file.write(f"{stringBox}:END")
 		file.write("\n")
 
 	def set_textID(self, ID):
