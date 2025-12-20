@@ -112,7 +112,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.53]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.54]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -156,12 +156,14 @@ class App(Menu):
 ##Running the Program
 Window = App(width=1280, height=720)
 Document = Document_Object(parent=Window.get_mainApp())
-Notes = noteBlock(Document.get_canvasObj())
+Notes = noteBlock(Document)
 
 Window.set_activeCanvas(Document.get_canvasObj())
 Window.set_noteData(Notes)
 
-Document.get_canvasObj().bind("<Button-1>", Notes.onClick)
+##Event Handling
+Document.get_canvasObj().bind("<Button-1>", Document.onClick)
+Document.get_canvasObj().bind("<Button-1>", Notes.onClick, add="+")
 
 def refresh():
 	##Controls What to do each time the Window Refreshes

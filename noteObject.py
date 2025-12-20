@@ -326,8 +326,9 @@ class noteWidget:
 		
 class noteBlock:
 	"""This Handles Instances of the Note Widget"""
-	def __init__(self, root):
-		self.__root = root				##Allows the program to know what canvas item to place to
+	def __init__(self, parent):
+		self.__parent = parent
+		self.__root = parent.get_canvasObj() ##Allows the program to know what canvas item to place to
 		self._activeNoteName = ""		##The name of the note that's in focus
 		self._activeNoteMove = False	##True when a box is being moved
 		self.dictOfNotes = {}			##Key == bbox of a text box
@@ -339,28 +340,29 @@ class noteBlock:
 		# 			self.__root.bind("<Motion>", object.moveBox)
 		# 			self._activeNoteName = object.myID
 		# 			self._activeNoteMove = True
-		
-		if self._activeNoteName == "": ##Checks if a note is active
-			if len(self.dictOfNotes) > 0:
-				self.edit_note(event)
-				if self._activeNoteName == "":
+		print(self.__parent.titleActive, "Active?")
+		if not self.__parent.titleActive: ##Prevents making a new Note when clicking on title block
+			if self._activeNoteName == "": ##Checks if a note is active
+				if len(self.dictOfNotes) > 0:
+					self.edit_note(event)
+					if self._activeNoteName == "":
+						self.create_note(event)
+				else:
 					self.create_note(event)
 			else:
-				self.create_note(event)
-		else:
-			##Clears the active note if outside of bounds
-			if not self.dictOfNotes[self._activeNoteName].withinBounds(event):
-				self.dictOfNotes[self._activeNoteName].stop_Listening()
-				self.dictOfNotes[self._activeNoteName].active = False
-				self._activeNoteName = ""
-				##Checks to see if another note was clicked. Only after clicking off the previously active note
-				self.edit_note(event) ##Tries to edit first
-				if self._activeNoteName == "":
-					self.create_note(event) ##If no edits, create a new note instead
+				##Clears the active note if outside of bounds
+				if not self.dictOfNotes[self._activeNoteName].withinBounds(event):
+					self.dictOfNotes[self._activeNoteName].stop_Listening()
+					self.dictOfNotes[self._activeNoteName].active = False
+					self._activeNoteName = ""
+					##Checks to see if another note was clicked. Only after clicking off the previously active note
+					self.edit_note(event) ##Tries to edit first
+					if self._activeNoteName == "":
+						self.create_note(event) ##If no edits, create a new note instead
 		
-		##For Debuging
-		print(f"Active Note: {self._activeNoteName}")
-		print(f"Active Move: {self._activeNoteMove}")
+			##For Debuging
+			print(f"Active Note: {self._activeNoteName}")
+			print(f"Active Move: {self._activeNoteMove}")
 	
 	def clearScreen(self):
 		for values in self.dictOfNotes.values():
