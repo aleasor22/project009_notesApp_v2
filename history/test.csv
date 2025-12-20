@@ -1,2 +1,0 @@
-START CONTENTS:,Create Exception logic to ,Capture an error when reading files,Allow Tkinter to boot regardless of if,the Text was readable or not. ,,:END,START BOX:,106,109,322,189,END:
-START CONTENTS:,Should also fix that extra line bug when, reading from files. Maybe takle some ,bugs why don't you. Wow perfect wrap,,:END,START BOX:,90,271,300,351,END:

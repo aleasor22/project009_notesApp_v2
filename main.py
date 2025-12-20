@@ -2,15 +2,17 @@
 import tkinter
 from pynput import keyboard
 from noteObject import *
+from Document_Object import *
+from Data import LINKED_LIST as LL
 
 class Events:
 	"""Handles Most Events within the project"""
 	def __init__(self):
 		self._mainApp = None
-		self._mainCanvas = None
+		self._activeCanvas = None
 		self.__noteBlock = None
 
-		self._fileLocation = "history/test.csv"
+		self._fileLocation = "Data/Local_Notes/testing.csv"
 
 	def kill(self, event):
 		self._mainApp.destroy()
@@ -38,21 +40,26 @@ class Events:
 			for line in file:
 				if (line[0]+line[1] != "//"):
 					newKey = f"Note-#{len(dictOfNotes)}"
-					dictOfNotes[newKey] = noteWidget(self._mainCanvas, newKey)
+					dictOfNotes[newKey] = noteWidget(self._activeCanvas, newKey)
 					for char in line:
 						if char == "," or char == "\n":
-							stepCount = dictOfNotes[newKey].loadFromFile(stepCount, currWord)
+							# currWord += ","
+							dictOfNotes[newKey].get_myLinkedList().add_tail(currWord)
+							# stepCount = dictOfNotes[newKey].loadFromFile(stepCount, currWord)
 							currWord = ""
 							continue
 						currWord += char
+					dictOfNotes[newKey].loadFromFile()
+					# print(f"\nPost Creation - {newKey}: \n>>", end=" ")
+					# dictOfNotes[newKey].get_myLinkedList().printList()
 
 	##---Basic Methods & Getters/Setters---##
 	def test(self): 
 		##used to test events - Often a placeholder
 		print("Event Tested")
 
-	def get_mainCanvas(self):
-		return self._mainCanvas
+	def get_activeCanvas(self):
+		return self._activeCanvas
 	
 	def get_mainApp(self):
 		return self._mainApp
@@ -105,7 +112,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.43]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.53]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -121,13 +128,6 @@ class App(Menu):
 		self.createChildMenu("File", "Open", self.open)
 		self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
 		self.childMenuPush()		
-
-		##Setting up the Main Canvas
-		self._mainCanvas = tkinter.Canvas(self._mainApp, bg="gray")#,cursor="xterm")
-		self._mainCanvas.grid(column=0, row=0, sticky="NSWE")
-		self._mainApp.columnconfigure(0, weight=10)
-		self._mainApp.rowconfigure(0, weight=10)
-
 
 		##Declaring Bindings
 		self._mainApp.bind_all("<Escape>", self.kill)
@@ -148,19 +148,23 @@ class App(Menu):
 	
 	def set_refreshRate(self, fps):
 		self.__refreshRate = int(fps)
+	
+	def set_activeCanvas(self, canvasObj):
+		self._activeCanvas = canvasObj
 
 
 ##Running the Program
-Window = App(width=500, height=500)
-Notes = noteBlock(Window.get_mainCanvas())
+Window = App(width=1280, height=720)
+Document = Document_Object(parent=Window.get_mainApp())
+Notes = noteBlock(Document.get_canvasObj())
+
+Window.set_activeCanvas(Document.get_canvasObj())
 Window.set_noteData(Notes)
 
-Window.get_mainCanvas().bind("<Button-1>", Notes.onClick)
+Document.get_canvasObj().bind("<Button-1>", Notes.onClick)
 
 def refresh():
 	##Controls What to do each time the Window Refreshes
-	#
-	#
 	#
 	##End of refresh
 	Window.get_mainApp().after(Window.get_refreshRate(), refresh)
