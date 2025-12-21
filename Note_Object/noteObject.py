@@ -1,7 +1,7 @@
 import tkinter
 import tkinter.font as tkFont 
 from pynput import keyboard
-from Data import *
+from Data.Text_Editor import TEXT_EDITOR
 ##from PIL import ImageFont
 
 ##CLASSES HERE WILL BE SPLIT AND RE-WRITEEN INTO THE NOTE_OBJECT FOLDER 

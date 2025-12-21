@@ -38,6 +38,12 @@ class Document_Object(TEXT_EDITOR):
 	def get_canvasObj(self):
 		return self.__canvasObject
 	
+	def clearDocWorkspace(self):
+		print("Need to get All active Canvas IDs")
+		# self.__noteBlock.clearScreen()
+		with open(self._fileManager.get_fileLocation(), "w") as file:
+			file.write("")
+	
 	def createTitleBlock(self, ):
 		if not self.isListening and not self.__titleExists:
 			self._textCanvasID = self.__canvasObject.create_text(self.__titleLinePosition[0], self.__titleLinePosition[1]-self.myFontHeight-10, anchor="nw", font=(self.myFont, self.myFontSize))

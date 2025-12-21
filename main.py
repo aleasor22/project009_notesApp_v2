@@ -3,7 +3,7 @@ import tkinter
 from pynput import keyboard
 from Note_Object.noteObject import *
 from Document_Object import *
-from Data import LINKED_LIST as LL
+from Data import *
 
 class Events:
 	"""Handles Most Events within the project"""
@@ -12,46 +12,11 @@ class Events:
 		self._activeCanvas = None
 		self.__noteBlock = None
 
-		self._fileLocation = "Data/Local_Notes/testing.csv"
+		self._fileManager = FILE_MANAGER()
+		self._fileManager.set_fileLocation("testing.csv")
 
 	def kill(self, event):
 		self._mainApp.destroy()
-
-	def clearScreen(self):
-		self.__noteBlock.clearScreen()
-		with open(self._fileLocation, "w") as file:
-			file.write("")
-	
-	def save(self): ##Using the CSV format (Comma Separated Values)
-		dictOfNotes = self.__noteBlock.dictOfNotes
-		with open(self._fileLocation, "w") as file:
-			for noteObj in dictOfNotes.values():
-				if len(noteObj.get_contents()) == 0:
-					##Ignores Empty Notes When Saving
-					continue
-				noteObj.saveToFile(file)
-
-	def open(self):
-		self.__noteBlock.clearScreen()
-		dictOfNotes = self.__noteBlock.dictOfNotes
-		stepCount = 0
-		with open(self._fileLocation) as file:
-			currWord = ""
-			for line in file:
-				if (line[0]+line[1] != "//"):
-					newKey = f"Note-#{len(dictOfNotes)}"
-					dictOfNotes[newKey] = noteWidget(self._activeCanvas, newKey)
-					for char in line:
-						if char == "," or char == "\n":
-							# currWord += ","
-							dictOfNotes[newKey].get_myLinkedList().add_tail(currWord)
-							# stepCount = dictOfNotes[newKey].loadFromFile(stepCount, currWord)
-							currWord = ""
-							continue
-						currWord += char
-					dictOfNotes[newKey].loadFromFile()
-					# print(f"\nPost Creation - {newKey}: \n>>", end=" ")
-					# dictOfNotes[newKey].get_myLinkedList().printList()
 
 	##---Basic Methods & Getters/Setters---##
 	def test(self): 
@@ -64,8 +29,8 @@ class Events:
 	def get_mainApp(self):
 		return self._mainApp
 	
-	def set_noteData(self, data):
-		self.__noteBlock = data
+	def get_fileManager(self):
+		return self._fileManager
 
 class Menu(Events):
 	def __init__(self):
@@ -112,7 +77,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.62]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.63]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -124,9 +89,9 @@ class App(Menu):
 
 		##Setting up the Tkinter Menus
 		self.menuSetUp()
-		self.createChildMenu("File", "Save", self.save)
-		self.createChildMenu("File", "Open", self.open)
-		self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
+		self.createChildMenu("File", "Save", self._fileManager.save)
+		self.createChildMenu("File", "Open", self._fileManager.open)
+		# self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
 		self.childMenuPush()		
 
 		##Declaring Bindings
@@ -135,7 +100,7 @@ class App(Menu):
 	def startApp(self):
 		##Loads Last Save at launch
 		try:
-			self.open()
+			self._fileManager.open()
 		except FileNotFoundError:
 			with open(self._fileLocation, "w") as f:
 				f.write("")
@@ -159,7 +124,7 @@ Document = Document_Object(parent=Window.get_mainApp())
 Notes = noteBlock(Document)
 
 Window.set_activeCanvas(Document.get_canvasObj())
-Window.set_noteData(Notes)
+Window.get_fileManager().set_noteBlock(Notes)
 
 ##Event Handling
 Document.get_canvasObj().bind("<Button-1>", Document.onClick)
