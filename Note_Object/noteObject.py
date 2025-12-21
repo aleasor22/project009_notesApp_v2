@@ -1,7 +1,7 @@
 import tkinter
 import tkinter.font as tkFont 
 from pynput import keyboard
-from Data import LINKED_LIST
+from Data import *
 ##from PIL import ImageFont
 
 ##CLASSES HERE WILL BE SPLIT AND RE-WRITEEN INTO THE NOTE_OBJECT FOLDER 
@@ -12,32 +12,15 @@ __all__ = [
 	"noteBlock"
 ]
 
-class noteWidget:
+class noteWidget(TEXT_EDITOR):
 	"""Handles the Contents of an individual note"""
 	def __init__(self, root, ID):
+		TEXT_EDITOR.__init__(self, root)
 		self.__root = root
-		self.__linkedList = LINKED_LIST()
-		##Start the Listenser
-		self.__listener = None
-		self.isListening = False
 		self.myID = ID
 		self.active = False
 
-		##Text Widget Variables
-		self.__textCanvasID = None
-		self.__wrap = 200
-		self._backSpaceActive = False  ##Tracks if the backspace  has been hit while editing text
-		self.myFont = tkFont.nametofont("TkDefaultFont")
-		self.myFontHeight = self.myFont.metrics('linespace')
-		self.myFontLength = self.myFont.measure("")
 		self.text_offset = 5
-
-		##String Manipulations
-		self._contents = ""
-		self._currLine = 0
-		self._contentLines = []
-		self._longestLine  = 0
-		self._contentLengthAtLine = {0:0}  
 
 		##Text Box Widget Variables
 		self.__moveCanvasID = None
@@ -48,68 +31,14 @@ class noteWidget:
 		self.box_offset_y = 10
 
 		##SAVE/LOAD from Files:
-		self.listOfKeyWords = [":END", "//"]
-		# self.stepCount = 0 May not be used anymore.
-		self.maxSteps = 2 #Tracks the  different types of data + 1
+		self.listOfKeyWords = [":END"]
 
 	def deleteCanvasIDs(self):
 		self.__root.delete(self.__boxCanvasID)
 		self.__root.delete(self.__moveCanvasID)
-		self.__root.delete(self.__textCanvasID)
+		self.__root.delete(self._textCanvasID)
 		if self.isListening:
 			self.stop_Listening()
-
-	def pressed(self, key):
-		try:
-			# print(f"Key Pressed: {key.char}") ##Used for Debug
-			self._contents += key.char
-		except AttributeError:
-			# print(f"Key Pressed: {key}") ##Used for Debug
-			if key == key.enter:
-				self._contents += "\n"
-				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-				self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
-				self._currLine += 1
-				print(self._contentLines, "append")
-				self.adjustBox()
-				
-			if key == key.space:
-				self._contents += " "
-			if key == key.tab:
-				self._contents += "\t"
-			if key == key.backspace:
-				self._backSpaceActive = True
-				self.onBackSpace()
-		finally:
-			##This logic happens no mater the above results
-			self.myFontLength = self.myFont.measure(self._contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
-			self.__root.itemconfigure(self.__textCanvasID, text=self._contents)
-			# print(f"Add new Key to screen: {key}")
-			
-			self.adjustBox(expand="x-dir")
-
-			##Resize box on wrap
-			toWrap = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
-			if toWrap > self.__wrap and not self._backSpaceActive:
-				self._contents += "\n"
-				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-				self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
-				self._currLine += 1
-				print(self._contentLines, "append")
-				self.adjustBox()
-			else:
-				##Only happens when my text width is under the wrap length
-				self._backSpaceActive = False
-
-	def released(self, key):
-		try:
-			temp = key.char
-		except AttributeError:
-			if key == key.f1:
-				print(self._contents)
-		finally:
-			##This logic happens no mater the above results
-			pass
 	
 	def onBackSpace(self, ):
 		temp = self._contents
@@ -135,13 +64,13 @@ class noteWidget:
 				print(self._contentLengthAtLine, "pop")
 	
 	def newNote(self, event):
-		self.myBbox = (event.x, event.y-10, event.x+int(self.__wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
+		self.myBbox = (event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
 		# self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
 		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self.__textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
+		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
 		self.start_Listening()
 
 	def adjustBox(self, addOrRemove=1, expand="y-dir"):
@@ -157,14 +86,14 @@ class noteWidget:
 			currentBoxWidth = (self.myBbox[2] - self.myBbox[0])
 
 			##Need to Increase the width when the longest line is at 75% of current size, until max size reached
-			atMaxSize = (currentBoxWidth >= self.__wrap+self.text_offset)
+			atMaxSize = (currentBoxWidth >= self._wrap+self.text_offset)
 			increaseSize = (int(0.75 * currentBoxWidth))
 			if self.longestLine() >= increaseSize and not atMaxSize:
 				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]+(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
 				# print("Get Bigger")
 
 			##Need to Decrease the width when the longest line is at 65% of current size, until min size reached
-			atMinSize = (currentBoxWidth <= int(self.__wrap/2)+self.text_offset)
+			atMinSize = (currentBoxWidth <= int(self._wrap/2)+self.text_offset)
 			decreaseSize = (int(0.6 * currentBoxWidth))
 			if self.longestLine() >= decreaseSize and self._backSpaceActive and not atMinSize:
 				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]-(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
@@ -217,7 +146,7 @@ class noteWidget:
 	def moveBox(self, event):
 		##Remove previous Canvas Widgets
 		self.__root.delete(self.__boxCanvasID)
-		self.__root.delete(self.__textCanvasID)
+		self.__root.delete(self._textCanvasID)
 
 		##Needs to move Box & Text with mouse
 		# Event .x/.y is based on current mouse position
@@ -225,11 +154,11 @@ class noteWidget:
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		# self.__textCanvasID = self.__root.create_text(text=self._contents)
+		# self._textCanvasID = self.__root.create_text(text=self._contents)
 	
 	def loadFromFile(self):
 		#KEY WORDS = [":END",]
-		currentItem = self.__linkedList.head
+		currentItem = self._linkedList.head
 		stepCount = 0
 		##1. Iterate throught the list
 		##2. If next element is ":END" then, shift data type and skip that element in the list
@@ -267,7 +196,7 @@ class noteWidget:
 		##Happens after looping through data.
 		print("END OF LINE")
 		self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-		self.__textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
+		self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		self._currLine = len(self._contentLines)
 		
@@ -290,16 +219,16 @@ class noteWidget:
 		file.write("\n")
 
 	def set_textID(self, ID):
-		self.__textCanvasID = ID
+		self._textCanvasID = ID
 
 	def set_boxID(self, ID):
 		self.__boxCanvasID = ID
 
 	def get_myLinkedList(self):
-		return self.__linkedList
+		return self._linkedList
 
 	def get_textID(self):
-		return self.__textCanvasID
+		return self._textCanvasID
 
 	def get_boxID(self):
 		return self.__boxCanvasID
@@ -312,22 +241,11 @@ class noteWidget:
 		##Dynamic in a way to know which elements to change
 		##need to know if I'm increasing/decreasing, should this be in a list too?
 		pass
-
-	def start_Listening(self):
-		"""Starts associated keyboard.listener thread"""
-		self.__listener = keyboard.Listener(on_press=self.pressed, on_release=self.released)
-		self.isListening = True
-		self.__listener.start() ##Starts a tread to track for keyboards press/release actions
-
-	def stop_Listening(self):
-		"""Stops associated keyboard.listener thread"""
-		self.isListening = False
-		self.__listener.stop()
 		
 class noteBlock:
 	"""This Handles Instances of the Note Widget"""
 	def __init__(self, parent):
-		self.__parent = parent
+		self.__parent = parent ##Parent Canvas Object
 		self.__root = parent.get_canvasObj() ##Allows the program to know what canvas item to place to
 		self._activeNoteName = ""		##The name of the note that's in focus
 		self._activeNoteMove = False	##True when a box is being moved

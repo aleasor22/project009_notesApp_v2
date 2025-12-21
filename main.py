@@ -1,7 +1,7 @@
 ##Imports
 import tkinter
 from pynput import keyboard
-from noteObject import *
+from Note_Object.noteObject import *
 from Document_Object import *
 from Data import LINKED_LIST as LL
 
@@ -112,7 +112,7 @@ class Menu(Events):
 ##Running the base application
 class App(Menu):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.54]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.6]"):
 		Menu.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -154,7 +154,7 @@ class App(Menu):
 
 
 ##Running the Program
-Window = App(width=1280, height=720)
+Window = App(width=500, height=500)
 Document = Document_Object(parent=Window.get_mainApp())
 Notes = noteBlock(Document)
 
