@@ -15,10 +15,11 @@ __all__ = [
 class noteWidget(TEXT_EDITOR):
 	"""Handles the Contents of an individual note"""
 	def __init__(self, root, ID):
-		TEXT_EDITOR.__init__(self, root)
+		TEXT_EDITOR.__init__(self, root, ID)
 		self.__root = root
 		self.myID = ID
 		self.active = False
+		self._activeError = False
 
 		self.text_offset = 5
 
@@ -39,29 +40,6 @@ class noteWidget(TEXT_EDITOR):
 		self.__root.delete(self._textCanvasID)
 		if self.isListening:
 			self.stop_Listening()
-	
-	def onBackSpace(self, ):
-		temp = self._contents
-		if len(temp) > 0:
-			self._contents = temp.rstrip(temp[len(self._contents)-1])
-			
-			if temp[len(self._contents)-1] == "\n":# and len(self._contents) > 0:
-				self.adjustBox(-1)
-				if len(self._contentLines) >= 0:
-					self._contentLengthAtLine.popitem()
-					self._contentLines.pop()
-					self._currLine -= 1
-					self.adjustBox(-1)
-					print(self._contentLengthAtLine, "pop")
-			else:
-				self.adjustBox(-1, "x-dir")
-			
-			##Reset variables if self._contents string is empty
-			if len(self._contents) == 0:
-				self._contentLengthAtLine = {0:0}
-				self._contentLines = []
-				self._currLine = 0
-				print(self._contentLengthAtLine, "pop")
 	
 	def newNote(self, event):
 		self.myBbox = (event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
@@ -105,25 +83,6 @@ class noteWidget(TEXT_EDITOR):
 		##Re-create box around text
 		self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 		# self._lineCount += addOrRemove
-
-	def stringWithinRange(self, lowerBound, upperBound):
-		newString = ""
-		for index in range(len(self._contents)):
-			if lowerBound <= index and index <= upperBound:
-				newString += self._contents[index]
-			
-			if index > upperBound:
-				break
-		
-		return newString
-
-	def longestLine(self):
-		##Compare current line with other lines. Determine if the current is the longest
-		maxLength = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
-		for line in self._contentLines:
-			if maxLength < self.myFont.measure(line):
-				maxLength = self.myFont.measure(line)
-		return maxLength
 
 	def withinBounds(self, event):
 		##Retruns True if mouse was clicked inside a text box, else returns false
@@ -191,14 +150,17 @@ class noteWidget(TEXT_EDITOR):
 				currentItem = currentItem.next
 			except AttributeError as E:
 				print(f"Caught Error: {E}\n @noteWidget.loadFromFile()")
+				self._activeError = True
 				break
 		
 		##Happens after looping through data.
-		print("END OF LINE")
-		self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-		self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
-		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self._currLine = len(self._contentLines)
+		if not self._activeError:
+			# print("END OF LINE")
+			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
+			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
+			self._currLine = len(self._contentLines)
+		
 		
 	def saveToFile(self, file):		
 		#KEY WORDS = [":END", "//"]
@@ -258,7 +220,7 @@ class noteBlock:
 		# 			self.__root.bind("<Motion>", object.moveBox)
 		# 			self._activeNoteName = object.myID
 		# 			self._activeNoteMove = True
-		print(self.__parent.titleActive, "Active?")
+		print(self.__parent.titleActive, "Parent Title Active?")
 		if not self.__parent.titleActive: ##Prevents making a new Note when clicking on title block
 			if self._activeNoteName == "": ##Checks if a note is active
 				if len(self.dictOfNotes) > 0:
@@ -281,6 +243,12 @@ class noteBlock:
 			##For Debuging
 			print(f"Active Note: {self._activeNoteName}")
 			print(f"Active Move: {self._activeNoteMove}")
+		else:
+			##Makes sure all other notes aren't listening for key presses
+			for value in self.dictOfNotes.values():
+				value.stop_Listening()
+				value.active = False
+
 	
 	def clearScreen(self):
 		for values in self.dictOfNotes.values():
