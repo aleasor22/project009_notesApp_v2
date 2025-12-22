@@ -147,3 +147,5 @@ class TEXT_EDITOR(stringInfo):
 		if self.__listener != None:
 			self.isListening = False
 			self.__listener.stop()
+		else:
+			print("No listener to stop.")
