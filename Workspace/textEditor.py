@@ -1,8 +1,9 @@
 ##Relavant Imports
 import tkinter.font as tkFont
 from pynput import keyboard
-from .Linked_List import LINKED_LIST
+from Data import LINKED_LIST
 
+##EXPORTS
 __all__ = [
 	"TEXT_EDITOR",
 ]

@@ -1,32 +1,36 @@
 ##IMPORTS
 import tkinter
 from .menu import MENU
+from .files import FILES
+from Workspace import DOCUMENT
 
 
 ##Running the base application
-class APP(MENU):
+class APP(MENU, FILES):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.65]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.66]"):
 		MENU.__init__(self)
+		FILES.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
 
 		##Setting up the Tkinter Window
 		self._mainApp = tkinter.Tk()
 		self._mainApp.title(titleString)
-		self._mainApp.geometry(f"{width}x{height}")
-
-		##Setting up the Tkinter Menus
-		self.menuSetUp()
-		self.createChildMenu("File", "Save", self.save)
-		self.createChildMenu("File", "Open", self.open)
-		# self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
-		self.childMenuPush()		
+		self._mainApp.geometry(f"{width}x{height}")		
 
 		##Declaring Bindings
 		self._mainApp.bind_all("<Escape>", self.kill)
 
 	def startApp(self):
+		
+		##Setting up the Tkinter Menus
+		self.menuSetUp()
+		self.createChildMenu("File", "Save", self.save)
+		self.createChildMenu("File", "Open", self.open)
+		# self.createChildMenu("Edit", "Clear Screen", self.clearScreen)
+		self.childMenuPush()
+
 		##Loads Last Save at launch
 		try:
 			self.open()

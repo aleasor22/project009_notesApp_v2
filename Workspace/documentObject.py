@@ -1,13 +1,15 @@
 ##IMPORTS
 import tkinter
 import tkinter.font as tkFont
-from Data.Text_Editor import TEXT_EDITOR
+from .textEditor import TEXT_EDITOR
+from .noteObject import *
 
+##EXPORTS
 __all__ = [
-	"Document_Object",
+	"DOCUMENT",
 ]
 
-class Document_Object(TEXT_EDITOR):
+class DOCUMENT(STICKY_NOTE, TEXT_EDITOR):
 	def __init__(self, parent):
 		##Private Variables
 		self.__parent = parent
@@ -62,3 +64,81 @@ class Document_Object(TEXT_EDITOR):
 		else:
 			self.stop_Listening()
 			self.titleActive = False
+
+
+##BELOW WILL BE MIGRATED INTO "DOCUMENT" CLASS
+# class STICKY_NOTE:
+# 	"""This Handles Instances of the Note Widget"""
+# 	def __init__(self, parent):
+# 		self.__parent = parent ##Parent Canvas Object
+# 		self.__root = parent.get_canvasObj() ##Allows the program to know what canvas item to place to
+# 		self._activeNoteName = ""		##The name of the note that's in focus
+# 		self._activeNoteMove = False	##True when a box is being moved
+# 		self.dictOfNotes = {}			##Key == bbox of a text box
+
+# 	def onClick(self, event):
+# 		# if not self._activeNoteMove:
+# 		# 	for object in self.dictOfNotes.values():
+# 		# 		if object.withinTopOfBox(event):
+# 		# 			self.__root.bind("<Motion>", object.moveBox)
+# 		# 			self._activeNoteName = object.myID
+# 		# 			self._activeNoteMove = True
+# 		print(self.__parent.titleActive, "Parent Title Active?")
+# 		if not self.__parent.titleActive: ##Prevents making a new Note when clicking on title block
+# 			if self._activeNoteName == "": ##Checks if a note is active
+# 				if len(self.dictOfNotes) > 0:
+# 					self.edit_note(event)
+# 					if self._activeNoteName == "":
+# 						self.create_note(event)
+# 				else:
+# 					self.create_note(event)
+# 			else:
+# 				##Clears the active note if outside of bounds
+# 				if not self.dictOfNotes[self._activeNoteName].withinBounds(event):
+# 					self.dictOfNotes[self._activeNoteName].stop_Listening()
+# 					self.dictOfNotes[self._activeNoteName].active = False
+# 					self._activeNoteName = ""
+# 					##Checks to see if another note was clicked. Only after clicking off the previously active note
+# 					self.edit_note(event) ##Tries to edit first
+# 					if self._activeNoteName == "":
+# 						self.create_note(event) ##If no edits, create a new note instead
+		
+# 			##For Debuging
+# 			print(f"Active Note: {self._activeNoteName}")
+# 			print(f"Active Move: {self._activeNoteMove}")
+# 		else:
+# 			##Makes sure all other notes aren't listening for key presses
+# 			for value in self.dictOfNotes.values():
+# 				value.stop_Listening()
+# 				value.active = False
+
+	
+# 	def clearScreen(self):
+# 		for values in self.dictOfNotes.values():
+# 			values.deleteCanvasIDs()
+# 		self.dictOfNotes = {}
+# 		self._activeNoteName = ""
+
+	##NOTE: this may migrate into "STICKY_NOTE" class
+# 	def create_note(self, event):
+# 		print("Creating a new Note")
+# 		##Fills in Default Data
+# 		newKey = f"Note-#{len(self.dictOfNotes)}"
+# 		self.dictOfNotes[newKey] = noteWidget(self.__root, newKey)
+# 		self.dictOfNotes[newKey].newNote(event)
+# 		self.dictOfNotes[newKey].active = True
+# 		self._activeNoteName = newKey
+
+	##NOTE: this may migrate into "STICKY_NOTE" class
+# 	def edit_note(self, event):
+# 		##Determins if a note is to become active
+# 		for key in self.dictOfNotes.keys():
+# 			if self.dictOfNotes[key].withinBounds(event):
+# 				print(f"Edit this box: dictOfNotes[{key}] = {self.dictOfNotes[key]}")
+# 				self.dictOfNotes[key].active = True
+# 				self._activeNoteName = key
+# 				break
+
+# 		##Reactivate the keyboard listener.
+# 		if self._activeNoteName != "":
+# 			self.dictOfNotes[self._activeNoteName].start_Listening()
