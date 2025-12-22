@@ -10,7 +10,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 	"""Handles the Contents of an individual note"""
 	def __init__(self, root, ID):
 		TEXT_EDITOR.__init__(self, root, ID)
-		self.__root = root
+		self.__root = root ##Canvas Object that notes will be written to
 		self.myID = ID
 		self.active = False
 		self._activeError = False
@@ -35,7 +35,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		if self.isListening:
 			self.stop_Listening()
 	
-	def newNote(self, event):
+	def createNote(self, event):
 		self.myBbox = (event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
 		# self.coords = (event.x, event.y)
 		
@@ -43,6 +43,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
+		
+		self.active = True
 		self.start_Listening()
 
 	def adjustBox(self, addOrRemove=1, expand="y-dir"):
