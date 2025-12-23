@@ -7,13 +7,17 @@ class EVENTS:
 	def __init__(self):
 		self._mainApp = None
 
-		# self._fileManager = FILE_MANAGER()
-		# self._fileManager.set_fileLocation("testing.csv")
-		# self._fileLocation = self._fileManager.get_fileLocation()
+		self._activeEvents = {}
+
 
 	def kill(self, event):
 		self._mainApp.destroy()
 
+	def createEvent(self, binding, function):
+		self._mainApp.bind_all(binding, function)
+
+	def addEvent(self, binding, function):
+		self._mainApp.bind_all(binding, function, add="+")
 
 	##---Basic Methods & Getters/Setters---##
 	def test(self): 

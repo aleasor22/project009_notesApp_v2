@@ -26,7 +26,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.box_offset_y = 10
 
 		##SAVE/LOAD from Files:
-		self.listOfKeyWords = [":END"]
+		self.stepCount = 0
 
 	def deleteCanvasIDs(self):
 		self.__root.delete(self.__boxCanvasID)
@@ -110,71 +110,45 @@ class STICKY_NOTE(TEXT_EDITOR):
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		# self._textCanvasID = self.__root.create_text(text=self._contents)
-	
-	def loadFromFile(self):
-		#KEY WORDS = [":END",]
-		currentItem = self._linkedList.head
-		stepCount = 0
-		##1. Iterate throught the list
-		##2. If next element is ":END" then, shift data type and skip that element in the list
-		while currentItem != None:
-			try:
-				if currentItem.data == ":END":
-					stepCount += 1
-					currentItem = currentItem.next
-					continue
-					
-				if stepCount == 0:
-					# self._contents += currentItem.data
-					if currentItem.next.data != ":END": ##Going to brick when currentItem.next == None
-						self._contents += f"{currentItem.data}\n"
-						self._contentLines.append(f"{currentItem.data}\n")
-						self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-					else:
-						##When it's the last element before next data set
-						self._contents += currentItem.data					
-					# print(f"TEXT: {self._contents}")
-					# print(f"TEXT LIST: {self._contentLines}")
-					# print(f"TEXT LENGTH: {self._contentLengthAtLine}")
-				
-				if stepCount == 1:
-					self.myBbox.append(int(currentItem.data))
-					# print(f"BBOX: {self.myBbox}")
 
-				# print(f"ITEM: {currentItem.data}")
-				##Neds to be at end of loop, otherwise infinite loop
+	def loadFromFile(self, currentItem):
+		try:
+			if currentItem.data == ":END":
+				self.stepCount += 1
 				currentItem = currentItem.next
-			except AttributeError as E:
-				print(f"Caught Error: {E}\n @noteWidget.loadFromFile()")
-				self._activeError = True
-				break
-		
-		##Happens after looping through data.
+				raise Exception("IGNORE")
+				
+			if self.stepCount == 0:
+				# self._contents += currentItem.data
+				if currentItem.next.data != ":END": ##Going to brick when currentItem.next == None
+					self._contents += f"{currentItem.data}\n"
+					self._contentLines.append(f"{currentItem.data}\n")
+					self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+				else:
+					##When it's the last element before next data set
+					self._contents += currentItem.data			
+				# print(f"TEXT: {self._contents} | AT STEP: {stepCount}")
+				# print(f"TEXT LIST: {self._contentLines}")
+				# print(f"TEXT LENGTH: {self._contentLengthAtLine}")
+			
+			if self.stepCount == 1:
+				self.myBbox.append(int(currentItem.data))
+				# print(f"BBOX: {self.myBbox}")
+
+		except AttributeError as E:
+			print(f"Caught Error: {E}\n @noteWidget.loadFromFile()")
+			self._activeError = True
+		except Exception:
+			pass
+	
+	def drawToScreen(self):
 		if not self._activeError:
-			# print("END OF LINE")
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self._currLine = len(self._contentLines)
-		
-		
-	def saveToFile(self, file):		
-		#KEY WORDS = [":END", "//"]
-		# Need to Save self._contents
-		#	Use the self._contentLines instead?
-		for char in self._contents:
-			if char == "\n":
-				file.write(",")
-				continue
-			file.write(char)
-		file.write(",:END,")
-
-		#Save the bbox of note box
-		stringBox = ""
-		for coord in self.myBbox:
-			stringBox += f"{coord},"
-		file.write(f"{stringBox}:END")
-		file.write("\n")
+		else:
+			print("Could not Draw sticky note to screen")
 
 	def set_textID(self, ID):
 		self._textCanvasID = ID

@@ -6,9 +6,10 @@ __all__ = [
 ]
 
 class NODE:
-	def __init__(self, data):
+	def __init__(self, data, prev=None):
 		self.data = data
 		self.next = None
+		self.prev = prev
 
 class LINKED_LIST:
 	def __init__(self):
@@ -18,6 +19,7 @@ class LINKED_LIST:
 		if self.head != None:
 			newData = NODE(data)
 			newData.next = self.head
+			newData.next.prev = newData ##The old Head will have a .prev equal to new head.
 			self.head = newData
 		else:
 			self.head = NODE(data)
@@ -26,10 +28,11 @@ class LINKED_LIST:
 		# print("Happens?")
 		if self.head != None:
 			# print(self.findLastElement().data, "END")
-			self.findLastElement().next = NODE(data)
+			lastElement = self.findLastElement()
+			lastElement.next = NODE(data, lastElement)
 		else:
 			self.head = NODE(data)
-			
+
 	def findLastElement(self):
 		curr = self.head
 		while curr.next != None:
@@ -41,16 +44,16 @@ class LINKED_LIST:
 		while curr != None:
 			print(curr.data, end=" -> ")
 			curr = curr.next
+		print()
 
 ##Used for Testing Linked_List Features
-# test = Linked_List()
+# test = LINKED_LIST()
 
 # test.add_head(10)
 # test.add_head(5)
 # test.add_tail("Last 1")
 # test.add_head(39)
 # test.add_head(23)
-
 # test.add_tail("Last 2")
 
 # test.printList()

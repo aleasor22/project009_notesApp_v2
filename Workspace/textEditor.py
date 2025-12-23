@@ -150,3 +150,8 @@ class TEXT_EDITOR(stringInfo):
 			self.__listener.stop()
 		else:
 			print("No listener to stop.")
+		
+	def addToContents(self, line:str):
+		self._contents += f"{line} "
+		print(self._contents, "TESTING CONTENTS")
+		

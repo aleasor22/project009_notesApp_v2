@@ -2,6 +2,7 @@
 import tkinter
 import tkinter.font as tkFont
 from .textEditor import TEXT_EDITOR
+from .fileManager import FILES
 from .noteObject import *
 
 ##EXPORTS
@@ -9,13 +10,14 @@ __all__ = [
 	"DOCUMENT",
 ]
 
-class DOCUMENT(TEXT_EDITOR):
+class DOCUMENT(TEXT_EDITOR, FILES):
 	def __init__(self, root, ID:str):
 		"""Creates a workspace that allows the user to write notes to screen. Requires the root Tkinter Object"""
 		##Canvas Variables
 		self.__parent = root ##The Root Tkinter object
 		self.__canvasObject = tkinter.Canvas(root, bg="gray")
 		TEXT_EDITOR.__init__(self, self.__canvasObject, ID, 16)
+		FILES.__init__(self, "divider1")
 
 		##Sticky Note Varibles
 		self.existingNotes = {}
@@ -42,7 +44,7 @@ class DOCUMENT(TEXT_EDITOR):
 		#CUSTOM SETUPS
 		self._textCanvasID = self.__canvasObject.create_text(self.__titleLinePosition[0], self.__titleLinePosition[1]-self.myFontHeight-10, anchor	= "nw",	font	= (self.myFont, self.myFontSize))
 
-	##SETUP METHODS
+	##EVENT METHODS	
 	def onClick(self, event):
 		if self.withinTitleBlock(event):
 			print("Edit the Title Block")
@@ -50,9 +52,10 @@ class DOCUMENT(TEXT_EDITOR):
 			self.start_Listening()
 
 			##De-activate Current Sticky Note.
-			self.existingNotes[self._activeNoteName].stop_Listening()
-			self.existingNotes[self._activeNoteName].active = False
-			self._activeNoteName = ""
+			if self._activeNoteName != "":
+				self.existingNotes[self._activeNoteName].stop_Listening()
+				self.existingNotes[self._activeNoteName].active = False
+				self._activeNoteName = ""
 		else:
 			print("Create/Edit a Note")
 			self.stop_Listening()
@@ -79,18 +82,56 @@ class DOCUMENT(TEXT_EDITOR):
 				self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
 				self.existingNotes[newKey].createNote(event) ##Creates a blank note & Sets it as active
 				self._activeNoteName = newKey
-			
-		
+					
 			##For Debuging
 			# print(f"Existing Notes: {self.existingNotes}")
 			print(f"Active Note: {self._activeNoteName}")
 			# print(f"Active Move: {self._activeNoteMove}")
-
-	##EVENT METHODS	
+	
 	def clearWorkspace(self):
 		for value in self.existingNotes.values():
 			value.deleteCanvasIDs()
 		self.existingNotes = {}
+	
+	def saveDocument(self, event=None):
+		print("Saving Document")
+		##Creating File
+		self.createFile()
+
+		##Writing to file
+		self.writeDocumentTitle(self._contents)
+		for stickyNote in self.existingNotes.values():
+			self.writeContentsToFile(stickyNote.get_contents(), stickyNote.myBbox)
+		
+		##Closing file after writting
+		self.closeFile()
+	
+	def openDocument(self):
+		dataFromFile = self.readFile()
+
+		##Sets Title.
+		self._contents = dataFromFile.head.data
+		self.__canvasObject.itemconfigure(self._textCanvasID, text=self._contents)
+		
+		##Sets Sticky Notes
+		curr = dataFromFile.head.next
+		##Create the first one
+		newKey = f"Note-#{len(self.existingNotes)}"
+		self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
+
+		while curr != None:
+			if curr.data == ":ENDLINE" and curr.next != None:
+				newKey = f"Note-#{len(self.existingNotes)}"
+				self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
+			else:
+				self.existingNotes[newKey].loadFromFile(curr)
+			curr = curr.next
+				
+		for value in self.existingNotes.values():
+			print(f"{value.myID} will be drawn to screen")
+			value.drawToScreen()
+		
+
 
 	##GETTERS/SETTERS
 	def withinTitleBlock(self, event):
@@ -101,3 +142,6 @@ class DOCUMENT(TEXT_EDITOR):
 	
 	def get_canvasObj(self):
 		return self.__canvasObject
+	
+	def get_title(self):
+		return self._contents
