@@ -13,8 +13,10 @@ class EVENTS:
 	def kill(self, event):
 		self._mainApp.destroy()
 
-	def createEvent(self, binding, function):
-		self._mainApp.bind_all(binding, function)
+	def createEvent(self, binding, function, root=None):
+		if root == None:
+			root = self._mainApp
+		root.bind(binding, function)
 
 	def addEvent(self, binding, function):
 		self._mainApp.bind_all(binding, function, add="+")

@@ -1,16 +1,19 @@
 ##IMPORTS
 import tkinter
 from .menu import MENU
+from .layout import *
 from Workspace import DOCUMENT
 
 
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.68]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.69]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
+		self.__screenWidth = width
+		self.__screenHeight = height
 
 		##Setting up the Tkinter Window
 		self._mainApp = tkinter.Tk()
@@ -21,11 +24,22 @@ class APP(MENU):
 		self.createEvent("<Escape>", self.kill)
 
 		##Workspace Declarations
+		self.__docLayout = DOC_NAVIGATION(self._mainApp, width)
+		self.createEvent("<Button-1>", self.__docLayout.onClick, root=self.__docLayout.get_canvasObj())
+		self.__divLayout = DIV_NAVIGATION(self._mainApp, height)
 		self.__workspace = {}
 
 	def createWorkspace(self, key):
-		self.__workspace[key] = DOCUMENT(self._mainApp, key)
-		self.createEvent("<Button-1>", self.__workspace[key].onClick)
+		##Sets all existing canvas items as inactive
+		for value in self.__workspace.values():
+			value.get_canvasObj().grid_remove()
+			value.stop_Listening()
+			value.activeDoc = False
+		
+		self.__workspace[key] = DOCUMENT(self._mainApp, key, self.__screenWidth)
+		self.__workspace[key].activeDoc = True
+		self.__docLayout.newDocument(self.__workspace[key].get_title(), self.__workspace[key])
+		self.createEvent("<Button-1>", self.__workspace[key].onClick, root=self.__workspace[key].get_canvasObj())
 
 	def loadWorkspace(self, key):
 		##Will be used to load in a workspace from files
@@ -33,11 +47,12 @@ class APP(MENU):
 
 	def startApp(self):
 		self.createWorkspace("Canvas-#0")
-		
+
 		##Setting up the Tkinter Menus
 		self.menuSetUp()
 		self.createChildMenu("File", "Save", self.__workspace["Canvas-#0"].saveDocument)
 		self.createChildMenu("File", "Open", self.__workspace["Canvas-#0"].openDocument)
+		self.createChildMenu("File", "New",  lambda:self.createWorkspace(key=f"Canvas-#{len(self.__workspace)}"))
 		self.createChildMenu("Edit", "Clear Screen", self.__workspace["Canvas-#0"].clearWorkspace)
 		self.childMenuPush()
 
@@ -49,8 +64,31 @@ class APP(MENU):
 				f.write("")
 		except:
 			pass
+		
+		##Filling out Layouts post file read.
+		self.__docLayout.updateTitle(self.__workspace["Canvas-#0"].lastTitle, self.__workspace["Canvas-#0"].get_title())
+
 		##Renders Window to Screen
 		self._mainApp.mainloop()
+	
+	def updates(self, ):
+		for value in self.__workspace.values():
+			# print(value.activeDoc, ":", value.myID)
+			if value.activeDoc:
+				activeTitle = value.get_title()
+				if "Blank" in value.lastTitle and value.get_title() == "":
+					activeTitle = value.lastTitle
+					# print(activeTitle)
+				elif value.lastTitle != activeTitle:
+					# print(f"lastTitle vs activeTitle: {value.lastTitle} == {activeTitle}")
+					if value.get_title() == "":
+						activeTitle = "Blank"
+					self.__docLayout.updateTitle(value.lastTitle, activeTitle)
+					value.lastTitle = activeTitle
+			
+				# value.activeTitle
+			pass
+		pass
 	
 	def get_refreshRate(self):
 		return self.__refreshRate

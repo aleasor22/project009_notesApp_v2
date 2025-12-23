@@ -42,7 +42,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		##Creates Canvas Widgets 
 		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.myFont)#, width=100)
+		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=(self.myFont, self.myFontSize))#, width=100)
 		
 		self.active = True
 		self.start_Listening()

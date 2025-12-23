@@ -6,21 +6,28 @@ from Data import LINKED_LIST
 ##EXPORTS
 __all__ = [
 	"TEXT_EDITOR",
+	"stringInfo"
 ]
 
 class stringInfo:
-	def __init__(self):
+	def __init__(self, fontSize:int=11):
 		##Holds the Contents of the text for on screen
 		self._contents = "" ## Houses the entire string. From start to finish of text
 		self._currLine = 0	## The current total line number. NOTE: May get phased out.
 		self._contentLines = []	## The ._contents string is split by line.
 		self._longestLine  = 0	## Temporary variable that houses the current longest line. NOTE: May get Phased out.
 		self._contentLengthAtLine = {0:0} ## Stores how long the line is (character count). NOTE: Item 0:0 should never get removed
+		
+		##Font Data
+		self.myFontSize = fontSize
+		self.myFont = tkFont.nametofont("TkDefaultFont")
+		self.myFontHeight = self.myFont.metrics('linespace')
+		self.myFontLength = self.myFont.measure("")
 
 class TEXT_EDITOR(stringInfo):
 	"""Used to edit/change text in any object that needs text."""
 	def __init__(self, childsRoot, childID, fontSize:int=11):
-		stringInfo.__init__(self)
+		stringInfo.__init__(self, fontSize)
 		##Related Data
 		self.__root = childsRoot ##This is the root canvas of the object that needs the Text Editor
 		self._childID = childID ## This represents the type of text box that I'm writing to. 
@@ -29,12 +36,6 @@ class TEXT_EDITOR(stringInfo):
 		##Input Keyboard Listener
 		self.__listener = None
 		self.isListening = False
-		
-		##Font Data
-		self.myFontSize = fontSize
-		self.myFont = tkFont.nametofont("TkDefaultFont")
-		self.myFontHeight = self.myFont.metrics('linespace')
-		self.myFontLength = self.myFont.measure("")
 		
 		##Text Widget Data
 		self._textCanvasID = None
