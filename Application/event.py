@@ -1,16 +1,20 @@
 ##IMPORTS
 import tkinter
 import tkinter.font as tkFont
+from .hotkeys import HOTKEYS
 
-class EVENTS:
+class EVENTS(HOTKEYS):
 	"""Handles Most Events within the project"""
 	def __init__(self):
+		HOTKEYS.__init__(self)
 		self._mainApp = None
+		self._settingsPopup = None
 
 		self._activeEvents = {}
 
-
-	def kill(self, event):
+	def kill(self):
+		if self._settingsPopup != None:
+			self._settingsPopup.destroy()
 		self._mainApp.destroy()
 
 	def createEvent(self, binding, function, root=None):

@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.69]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.7]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -21,7 +21,7 @@ class APP(MENU):
 		self._mainApp.geometry(f"{width}x{height}")
 
 		##Declaring Bindings
-		self.createEvent("<Escape>", self.kill)
+		# self.createEvent("<Escape>", self.kill)
 
 		##Workspace Declarations
 		self.__docLayout = DOC_NAVIGATION(self._mainApp, width)
@@ -41,12 +41,14 @@ class APP(MENU):
 		self.__docLayout.newDocument(self.__workspace[key].get_title(), self.__workspace[key])
 		self.createEvent("<Button-1>", self.__workspace[key].onClick, root=self.__workspace[key].get_canvasObj())
 
-	def loadWorkspace(self, key):
-		##Will be used to load in a workspace from files
-		pass
-
 	def startApp(self):
 		self.createWorkspace("Canvas-#0")
+
+		##Setting Up Global Hotkeys
+		self.addHotkeyCommand("Exit", self.kill, "<esc>")
+		self.addHotkeyCommand("Save", self.__workspace["Canvas-#0"].saveDocument)
+		# self.addHotkeyCommand("Open", self.__workspace["Canvas-#0"].openDocument)
+		self.start_hotKeyListener()
 
 		##Setting up the Tkinter Menus
 		self.menuSetUp()
@@ -69,7 +71,15 @@ class APP(MENU):
 		self.__docLayout.updateTitle(self.__workspace["Canvas-#0"].lastTitle, self.__workspace["Canvas-#0"].get_title())
 
 		##Renders Window to Screen
+		self._mainApp.bind("<Destroy>", self.onClose)
 		self._mainApp.mainloop()
+	
+	def onClose(self, event):
+		if event.widget != self._mainApp:
+			return
+		for value in self.__workspace.values():
+			value.saveDocument()
+		print("Saved & Closed App")
 	
 	def updates(self, ):
 		for value in self.__workspace.values():

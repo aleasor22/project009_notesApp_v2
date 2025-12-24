@@ -14,7 +14,6 @@ class layoutInfo(stringInfo):
 		self._parent = parent ##The container that a Layout item was placed to. 
 		self._canvasObj = None
 
-
 		self._activeItems = {} ##Key = Document title, Value = Document Object
 		self._itemPosition = {} ##Key = Document Object, Value = Position of Document Reference
 		self._itemCanvasID = {} ##Key = Document Title, Value = Canvas IDs of document text object

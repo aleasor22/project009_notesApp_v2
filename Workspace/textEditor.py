@@ -26,7 +26,7 @@ class stringInfo:
 
 class TEXT_EDITOR(stringInfo):
 	"""Used to edit/change text in any object that needs text."""
-	def __init__(self, childsRoot, childID, fontSize:int=11):
+	def __init__(self, childsRoot, childID, fontSize:int=9):
 		stringInfo.__init__(self, fontSize)
 		##Related Data
 		self.__root = childsRoot ##This is the root canvas of the object that needs the Text Editor
@@ -41,13 +41,25 @@ class TEXT_EDITOR(stringInfo):
 		self._textCanvasID = None
 		self._wrap = 200
 		self._backSpaceActive = False  ##Tracks if the backspace  has been hit while editing text
+		self._isHotKeyPressed = False
+		self._hotKeyList = [
+			keyboard.Key.alt_gr,
+			keyboard.Key.alt_l,
+			keyboard.Key.ctrl_l,
+			keyboard.Key.ctrl_r,
+			keyboard.Key.esc
+		]
 	
 	def pressed(self, key):
 		try:
 			# print(f"Key Pressed: {key.char}") ##Used for Debug
-			self._contents += key.char
+			if not self._isHotKeyPressed:
+				self._contents += key.char
 		except AttributeError:
 			# print(f"Key Pressed: {key}") ##Used for Debug
+			if key in self._hotKeyList:
+				# print(f"Ignore this: {key}")
+				self._isHotKeyPressed = True
 			if key == key.enter:
 				self.onEnterPress()
 			if key == key.space:
@@ -79,8 +91,9 @@ class TEXT_EDITOR(stringInfo):
 		try:
 			temp = key.char
 		except AttributeError:
-			if key == key.f1:
-				print(self._contents)
+			if key in self._hotKeyList:
+				# print(f"Ignore this: {key}")
+				self._isHotKeyPressed = False
 		finally:
 			##This logic happens no mater the above results
 			pass

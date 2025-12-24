@@ -2,6 +2,17 @@
 import tkinter
 from .event import EVENTS
 
+##Handles creation of a popup tk-Window
+class POPUP():
+	def __init__(self, myTitle:str):
+		##Sets up the Pop-up
+		self.root = tkinter.Tk()
+		self.root.title(myTitle)
+		self.root.geometry("500x500")
+
+	##Pushes the Popup to display on screen
+	def runPopUp(self):
+		self.root.mainloop()
 
 class MENU(EVENTS):
 	def __init__(self):
@@ -10,11 +21,9 @@ class MENU(EVENTS):
 
 		##Parent Menu Dropdowns
 		self._parentMenus = {
-			"File":		None, 
-			"Edit":		None, 
-			"View":		None, 
-			"Setting":	None, 
-			"Help":		None, 
+			"File":		None,
+			"Edit":		None,
+			"View":		None,
 		}
 		self._childMenus = {
 			"File":	[], 
@@ -30,10 +39,20 @@ class MENU(EVENTS):
 		self.__mainMenu = tkinter.Menu(self._mainApp)
 
 		for key in self._parentMenus.keys():
+			if key == "Settings":
+				continue
 			self._parentMenus[key] = tkinter.Menu(self.__mainMenu, tearoff=False)
 			self.__mainMenu.add_cascade(label=key, menu=self._parentMenus[key])
 		
+		# self._parentMenus["Settings"] = tkinter.Menu(self.__mainMenu, )
+		self.__mainMenu.add_command(label="Settings", command=self.settingsPopup)
+
 		self._mainApp.config(menu=self.__mainMenu)
+	
+	def settingsPopup(self):
+		settings = POPUP("Settings")
+		self._settingsPopup = settings.root
+		settings.runPopUp()
 
 	def createChildMenu(self, root:str, childLabel:str, function):
 		self._childMenus[root].append((childLabel, function))
