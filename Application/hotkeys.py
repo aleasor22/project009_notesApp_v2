@@ -1,5 +1,5 @@
 ##Imports
-from pynput import keyboard
+from pynput import keyboard, mouse
 
 class HOTKEYS:
 	def __init__(self):
@@ -14,6 +14,47 @@ class HOTKEYS:
 		}
 		self.__hotKeyCommands = {}
 		self.__hotkeyListener = None
+
+		## Mouse Inputs
+		self.__mousePressCommands = {
+			"M1" : [],
+			"M2" : [],
+			"M3" : []
+		}
+		self.__activeMouseButton = {
+			"M1" : False,
+			"M2" : False, 
+			"M3" : False
+			
+		}
+		self.__mouseListener = None
+
+	def onMove(self, x, y):
+		# print(f"Mouse Position: ({x}, {y})")
+		pass
+	
+	def onClick(self, x, y, button, pressed):
+		if pressed:
+			if button == button.left:
+				self.__activeMouseButton["M1"] = True
+			if button == button.right:
+				self.__activeMouseButton["M2"] = True
+			if button == button.middle:
+				self.__activeMouseButton["M3"] = True
+			# print(f"Mouse Buttons: {self.__activeMouseButton}")
+		else:			
+			self.__activeMouseButton["M1"] = False
+			self.__activeMouseButton["M2"] = False
+			self.__activeMouseButton["M3"] = False
+			# print(f"Mouse Buttons: {self.__activeMouseButton}")
+	
+	def onScroll(self, x, y, dx, dy):
+		print('Scrolled {0} at {1}'.format(
+			'down' if dy < 0 else 'up',
+			(x, y)))
+	
+	def addButtonCommand(self, buttonPress, function):
+		self.__mousePressCommands[buttonPress].append(function)
 
 	def addHotkeyCommand(self, key:str, function, shortcut:str=""):
 		try:
@@ -33,10 +74,10 @@ class HOTKEYS:
 			print(f"Attribute Error @HOTKEYS.addCommand(): {E}")
 			print(f">>Key: {key}\n>>Function: {function}\n>>Shortcut: {shortcut}\n")
 			
-	
+	##Start/Stop/Restart keyboard Listener
 	def restart_hotKeyListener(self):
 		self.stop_hotKeyListener() ##Closes original listener
-		self.start_hotKeyListener() ##Starts new listener - with new set of commands.
+		self.start_hotKeyListener() 
 	
 	def start_hotKeyListener(self):
 		self.__hotkeyListener = keyboard.GlobalHotKeys(self.__hotKeyCommands)
@@ -45,3 +86,17 @@ class HOTKEYS:
 	def stop_hotKeyListener(self):
 		if self.__hotkeyListener != None:
 			self.__hotkeyListener.stop()
+	
+	##Start/Stop Mouse Listener	
+	def start_mouseListener(self):
+		self.__mouseListener = mouse.Listener(on_move=self.onMove, on_click=self.onClick)#, on_scroll=self.onScroll)
+		self.__mouseListener.start()
+		pass
+
+	def stop_mouseListener(self):
+		if self.__mouseListener != None:
+			self.__mouseListener.stop()
+		pass
+	
+	def get_isMouseButtonPressed(self, button:str):
+		return self.__activeMouseButton[button]

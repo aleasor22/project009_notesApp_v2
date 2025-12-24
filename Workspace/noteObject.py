@@ -13,11 +13,17 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.__root = root ##Canvas Object that notes will be written to
 		self.myID = ID
 		self.active = False
+		self.toBeDeleted  = False
 		self._activeError = False
 
 		self.text_offset = 5
 
 		##Text Box Widget Variables
+		self.activeMove = False
+		self.manualWidthSet = False
+		self.manualChangeWidth = False
+		self._moveAnchor = []
+		self._textAnchor = []
 		self.__moveCanvasID = None
 		self.__boxCanvasID = None
 		# self.coords  = (0, 0)       ##(x, y)
@@ -36,7 +42,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.stop_Listening()
 	
 	def createNote(self, event):
-		self.myBbox = (event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight)
+		self.myBbox = [event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight]
 		# self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
@@ -47,69 +53,106 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.active = True
 		self.start_Listening()
 
-	def adjustBox(self, addOrRemove=1, expand="y-dir"):
-		##Remove old Canvas ID
-		self.__root.delete(self.__boxCanvasID)
-		# print(f"Modifier: {addOrRemove}")
-
-		##Create New Box
-		if expand == "y-dir":
-			self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[3]+(addOrRemove * self.myFontHeight))
-		elif expand == "x-dir":
+	def changeWidth(self):
+		##If self.manualWidthSet is True. Then, Prevent any changes to box width
+		if self.isListening and self._activeKeyPress and not self.manualWidthSet:
+			##Remove old Canvas ID
+			self.__root.delete(self.__boxCanvasID)
 			self.__root.delete(self.__moveCanvasID)
-			currentBoxWidth = (self.myBbox[2] - self.myBbox[0])
 
-			##Need to Increase the width when the longest line is at 75% of current size, until max size reached
-			atMaxSize = (currentBoxWidth >= self._wrap+self.text_offset)
-			increaseSize = (int(0.75 * currentBoxWidth))
-			if self.longestLine() >= increaseSize and not atMaxSize:
-				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]+(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
-				# print("Get Bigger")
+			##Adjust box Here
+			defaultWidth = int(self._wrap/2)+self.box_offset_x
 
-			##Need to Decrease the width when the longest line is at 65% of current size, until min size reached
-			atMinSize = (currentBoxWidth <= int(self._wrap/2)+self.text_offset)
-			decreaseSize = (int(0.6 * currentBoxWidth))
-			if self.longestLine() >= decreaseSize and self._backSpaceActive and not atMinSize:
-				self.myBbox = (self.myBbox[0], self.myBbox[1], self.myBbox[2]-(self.myFont.measure(len(self._contents)-1)), self.myBbox[3])
-				# print("Get Smaller")
+			if self.myFont.measure(self.longestLine()) >= int(0.75 * defaultWidth):
+				self.changeBBox(2, self.myBbox[0]+self.myFont.measure(self.longestLine())+int(0.25 * defaultWidth))
 
 			##Re-Create top box
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 
-		##Re-create box around text
-		self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
-		# self._lineCount += addOrRemove
+	def changeHeight(self):
+		if self.isListening and self._activeKeyPress:
+			##Remove old Canvas ID
+			self.__root.delete(self.__boxCanvasID)
+			self.__root.delete(self.__moveCanvasID)
+
+			##Adjust box Here
+			self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentLines)+1) * self.myFontHeight))
+			
+			##Re-Create top box
+			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
+	
+	def changeWrap(self):
+		pass
+	
+	def removeEmptyNote(self):
+		# print(f"{self.myID} is active? {self.active}")
+		if self._contents == "" and not self.active:
+			self.toBeDeleted = True
+			self.deleteCanvasIDs()
 
 	def withinBounds(self, event):
 		##Retruns True if mouse was clicked inside a text box, else returns false
-		if self.myBbox[0] < event.x and event.x < self.myBbox[2]:
+		if self.myBbox[0] < event.x and event.x < self.myBbox[2]+5:
 			#Mouse Possition on Click is between x1 and x2
 			if self.myBbox[1] < event.y and event.y < self.myBbox[3]:
 				#Mouse Possition on click is between y1 and y2
 				return True
 		return False
 	
-	def withinTopOfBox(self, event):
+	def withinTopOfBox(self, pos):
 		##Retruns True if mouse was clicked inside a text box, else returns false
-		if self.myBbox[0] < event.x and event.x < self.myBbox[2]:
+		if self.myBbox[0] < pos[0] and pos[0] < self.myBbox[2]:
 			#Mouse Possition on Click is between x1 and x2
-			if self.myBbox[1] < event.y and event.y < self.myBbox[3]:
+			if self.myBbox[1] < pos[1] and pos[1] < (self.myBbox[1]+10):
 				# print("Within top of Box")
 				return True
 		return False
 
-	def moveBox(self, event):
-		##Remove previous Canvas Widgets
-		self.__root.delete(self.__boxCanvasID)
-		self.__root.delete(self._textCanvasID)
+	def withinSideOfBox(self, pos):
+		##Retruns True if mouse was clicked inside a text box, else returns false
+		if self.myBbox[2]-15 < pos[0] and pos[0] < self.myBbox[2]+5:
+			#Mouse Possition on Click is between x1 and x2
+			if self.myBbox[1] < pos[1] and pos[1] < (self.myBbox[3]):
+				print("Within right side of Box")
+				return True
+		return False
+		
 
-		##Needs to move Box & Text with mouse
-		# Event .x/.y is based on current mouse position
-		# Re-Write these cordinates into the new my_bbox
+	def pressHoldWidthChange(self, mousePos):
+		self.__root.delete(self.__boxCanvasID)
+		self.__root.delete(self.__moveCanvasID)
+		
+		self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
+		self._wrap = mousePos[0] - self.myBbox[0] - self.box_offset_x
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		# self._textCanvasID = self.__root.create_text(text=self._contents)
+		self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+		
+		if not self.manualChangeWidth:
+			self.manualChangeWidth = True
+		self.manualWidthSet = True
+
+	def pressHoldBoxMove(self, mousePos):
+		##Remove previous Canvas Widgets
+		if not self.activeMove:
+			self._moveAnchor = [mousePos[0] - self.myBbox[0], mousePos[1] - self.myBbox[1], self.myBbox[2] - mousePos[0], self.myBbox[3] - mousePos[1]]
+			self._textAnchor = [mousePos[0] - (self.myBbox[0]+self.text_offset), mousePos[1] - (self.myBbox[1]+10+self.text_offset)]
+			self.activeMove = True
+		else:
+			self.__root.delete(self.__boxCanvasID)
+			self.__root.delete(self.__moveCanvasID)
+			self.__root.delete(self._textCanvasID)
+
+			if self._moveAnchor != []:
+				self.myBbox = [mousePos[0]-self._moveAnchor[0], mousePos[1]-self._moveAnchor[1], mousePos[0]+self._moveAnchor[2], mousePos[1]+self._moveAnchor[3]]
+
+			##Create New Canvas Widgets
+			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
+			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self._contents, anchor="nw", font=(self.myFont, self.myFontSize))
 
 	def loadFromFile(self, currentItem):
 		try:
@@ -168,7 +211,11 @@ class STICKY_NOTE(TEXT_EDITOR):
 	def get_contents(self):
 		return self._contents
 
-	def changeBBox(self, modds: list, addOrRemove: list):
+	def changeBBox(self, index:int, newValue:int):
+		"""
+		| Changes specific elements of the bbox. Reduces the need to redeclare the bbox when only one or two elements change.
+		"""
+		self.myBbox[index] = newValue
 		##Able to mainipulate the self.myBbox by changing one or all elements of the tuple
 		##Dynamic in a way to know which elements to change
 		##need to know if I'm increasing/decreasing, should this be in a list too?

@@ -14,7 +14,7 @@ class stringInfo:
 		##Holds the Contents of the text for on screen
 		self._contents = "" ## Houses the entire string. From start to finish of text
 		self._currLine = 0	## The current total line number. NOTE: May get phased out.
-		self._contentLines = []	## The ._contents string is split by line.
+		self._contentLines = [""]	## The ._contents string is split by line.
 		self._longestLine  = 0	## Temporary variable that houses the current longest line. NOTE: May get Phased out.
 		self._contentLengthAtLine = {0:0} ## Stores how long the line is (character count). NOTE: Item 0:0 should never get removed
 		
@@ -23,6 +23,17 @@ class stringInfo:
 		self.myFont = tkFont.nametofont("TkDefaultFont")
 		self.myFontHeight = self.myFont.metrics('linespace')
 		self.myFontLength = self.myFont.measure("")
+
+	def get_fontInfo(self):
+		return (self.myFont, self.myFontSize)
+		
+	
+class TEXT_BITMAPS:
+	"""Hosts the buttons that manipulate Specific text features. EX: BOLD, Italics, Underline, etc."""
+	def __init__(self):
+
+		pass
+
 
 class TEXT_EDITOR(stringInfo):
 	"""Used to edit/change text in any object that needs text."""
@@ -42,6 +53,7 @@ class TEXT_EDITOR(stringInfo):
 		self._wrap = 200
 		self._backSpaceActive = False  ##Tracks if the backspace  has been hit while editing text
 		self._isHotKeyPressed = False
+		self._activeKeyPress  = False
 		self._hotKeyList = [
 			keyboard.Key.alt_gr,
 			keyboard.Key.alt_l,
@@ -53,16 +65,21 @@ class TEXT_EDITOR(stringInfo):
 	def pressed(self, key):
 		try:
 			# print(f"Key Pressed: {key.char}") ##Used for Debug
+			self._activeKeyPress = True
 			if not self._isHotKeyPressed:
-				self._contents += key.char
+				activeKey = key.char
+				self.appendCurrentLine(activeKey)
+				self._contents += activeKey
 		except AttributeError:
 			# print(f"Key Pressed: {key}") ##Used for Debug
 			if key in self._hotKeyList:
 				# print(f"Ignore this: {key}")
 				self._isHotKeyPressed = True
 			if key == key.enter:
+				self.appendCurrentLine("\n")
 				self.onEnterPress()
 			if key == key.space:
+				self.appendCurrentLine(" ")
 				self._contents += " "
 			if key == key.tab:
 				self.onTabPress()
@@ -76,19 +93,18 @@ class TEXT_EDITOR(stringInfo):
 			# print(f"Add new Key to screen: {key}")
 			
 			##Resize box on wrap
-			toWrap = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
+			toWrap = self.myFont.measure(self._contentLines[self._currLine])
+			# print(toWrap > self._wrap, ":toWrap bool")
 			if toWrap > self._wrap and not self._backSpaceActive:
 				self._contents += "\n"
+				self.appendCurrentLine("\n")
 				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-				self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
 				self._currLine += 1
-				print(self._contentLines, "append")
-			else:
-				##Only happens when my text width is under the wrap length
-				self._backSpaceActive = False
+			print(self._contentLines, "append")
 
 	def released(self, key):
 		try:
+			self._activeKeyPress = False
 			temp = key.char
 		except AttributeError:
 			if key in self._hotKeyList:
@@ -99,46 +115,52 @@ class TEXT_EDITOR(stringInfo):
 			pass
 
 	def onEnterPress(self, ):
-		print(self._childID, " = Child ID")
+		# print(self._childID, " = Child ID")
 		if "Canvas" in self._childID:
-			print("Nothing Happens")
+			# print("Nothing Happens")
 			self.stop_Listening()
 		else:
 			self._contents += "\n"
 			self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-			self._contentLines.append(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
 			self._currLine += 1
-			print(self._contentLines, "append")
+			# print(self._contentLines, "append")
 
 	def onTabPress(self):
 		self._contents += "\t"
 
 	def onBackSpace(self, ):
 		temp = self._contents
-		if len(temp) > 0:
-			self._contents = temp.rstrip(temp[len(self._contents)-1])
+		if len(self._contentLines) > 0:
+			tempLine = self._contentLines[self._currLine]
+		if len(temp) > 0 and tempLine != None:
+			self._contents = temp.rstrip(self.get_lastChar_inString(temp))
+			self._contentLines[self._currLine] = tempLine.rstrip(self.get_lastChar_inCurrentLine())
 			
-			if temp[len(self._contents)-1] == "\n":# and len(self._contents) > 0:
+			if self.get_lastChar_inString(temp) == "\n":
 				if len(self._contentLines) >= 0:
 					self._contentLengthAtLine.popitem()
 					self._contentLines.pop()
 					self._currLine -= 1
-					print(self._contentLengthAtLine, "pop")
+					# print(self._contentLengthAtLine, "pop")
 			
 			##Reset variables if self._contents string is empty
 			if len(self._contents) == 0:
 				self._contentLengthAtLine = {0:0}
-				self._contentLines = []
+				self._contentLines = [""]
 				self._currLine = 0
-				print(self._contentLengthAtLine, "pop")
+				# print(self._contentLengthAtLine, "pop")
+
+		self._backSpaceActive = False
 
 	def longestLine(self):
 		##Compare current line with other lines. Determine if the current is the longest
-		maxLength = self.myFont.measure(self.stringWithinRange(self._contentLengthAtLine[self._currLine], len(self._contents)))
-		for line in self._contentLines:
-			if maxLength < self.myFont.measure(line):
-				maxLength = self.myFont.measure(line)
-		return maxLength
+		longestLine = len(self._contentLines[0])
+		longestLineIndex = 0
+		for index in range(len(self._contentLines)):
+			if longestLine < len(self._contentLines[index]):
+				longestLine = len(self._contentLines[index])
+				longestLineIndex = index
+		return self._contentLines[longestLineIndex]
 	
 	def stringWithinRange(self, lowerBound, upperBound):
 		newString = ""
@@ -153,19 +175,38 @@ class TEXT_EDITOR(stringInfo):
 
 	def start_Listening(self):
 		"""Starts associated keyboard.listener thread"""
-		self.__listener = keyboard.Listener(on_press=self.pressed, on_release=self.released)
-		self.isListening = True
-		self.__listener.start() ##Starts a tread to track for keyboards press/release actions
+		if not self.isListening: ##Makes sure a listener hasn't already started.
+			self.__listener = keyboard.Listener(on_press=self.pressed, on_release=self.released)
+			self.isListening = True
+			self.__listener.start() ##Starts a tread to track for keyboards press/release actions
 
 	def stop_Listening(self):
 		"""Stops associated keyboard.listener thread"""
 		if self.__listener != None:
 			self.isListening = False
 			self.__listener.stop()
-		else:
-			print("No listener to stop.")
+		# else:
+		# 	print("No listener to stop.")
 		
 	def addToContents(self, line:str):
 		self._contents += f"{line} "
-		print(self._contents, "TESTING CONTENTS")
-		
+		# print(self._contents, "TESTING CONTENTS")
+	
+	def appendCurrentLine(self, key:str):
+		self._contentLines[self._currLine] += key
+		if key == "\n":
+			self._contentLines.append("") ##starts the line element
+	
+	def get_lastChar_inCurrentLine(self):
+		try:
+			return self._contentLines[self._currLine][len(self._contentLines[self._currLine])-1]
+		except IndexError as E:
+			print(f"Index Error @lastChar_inCurrentLine\n>> {E}")
+
+	def get_lastChar_inString(self, string:str=""):
+		try:
+			if string == "":
+				string = self._contents
+			return string[len(string)-1]
+		except IndexError as E:
+			print(f"\nIndex Error @lastChar_inString\n>> {E} <<\n")

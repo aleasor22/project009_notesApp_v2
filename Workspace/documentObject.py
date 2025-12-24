@@ -20,9 +20,10 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 		FILES.__init__(self, "divider1")
 
 		##Sticky Note Varibles
-		self.existingNotes = {}
+		self.existingNotes = {}			##The Sticky_Note object with associatedd Key
 		self._activeNoteName = ""		##The name of the note that's in focus
 		self._activeNoteMove = False	##True when a box is being moved
+		self.__GLOBAL_MOVE_ID = ""
 
 		##Canvas IDs
 		self.__titleBlockZone	 = [0, 0, 250, self.myFontHeight+40]
@@ -59,37 +60,83 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 				self.existingNotes[self._activeNoteName].active = False
 				self._activeNoteName = ""
 		else:
-			print("Create/Edit a Note")
+			# print("Create/Edit a Note")
 			self.stop_Listening()
+
+			##Refresh Dictionary
+			for key, value in self.existingNotes.items():
+				if value.toBeDeleted:
+					# print(f"Deleted key: {key}")
+					del self.existingNotes[key]
+					break
 
 			##Handles the Sticky Notes
 			newKey = f"Note-#{len(self.existingNotes)}"
-			print(self.existingNotes)
+			keyCounter = 0
+			#if new key already exists make a different one till it's not in existing.
+			while newKey in self.existingNotes.keys():
+				newKey = f"Note-#{keyCounter}"
+				keyCounter += 1
+			
+			# print("Notes Dict", self.existingNotes)
 			if (len(self.existingNotes) > 0):
+				self._activeNoteName = ""
 				for value in self.existingNotes.values():
 					if value.withinBounds(event):
+						print(f"Editing Note: {value.myID}")
 						self._activeNoteName = value.myID
 						value.active = True ##Sets note as active
 						value.start_Listening() ##Allows editing the note
-						break
 					else:
-						self._activeNoteName = ""
-						value.stop_Listening()
 						value.active = False
-				
-				if self._activeNoteName == "":
-					self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
-					self.existingNotes[newKey].createNote(event) ##Creates a blank note & Sets it as active
-					self._activeNoteName = newKey
+						value.stop_Listening()
+
+				if self._activeNoteName == "": ##If a note's not getting edited
+					print(f"Creating New Note: {newKey}")
+					self.createNote(newKey, event)
 			else:
-				self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
-				self.existingNotes[newKey].createNote(event) ##Creates a blank note & Sets it as active
-				self._activeNoteName = newKey
+				print(f"Creating New Note: {newKey}")
+				self.createNote(newKey, event)
 					
 			##For Debuging
 			# print(f"Existing Notes: {self.existingNotes}")
 			print(f"Active Note: {self._activeNoteName}")
 			# print(f"Active Move: {self._activeNoteMove}")
+	
+	def manualChangeWidth(self, mousePos):
+		for value in self.existingNotes.values():
+			if (value.withinSideOfBox(mousePos) or value.manualChangeWidth) and value.myID == self.__GLOBAL_MOVE_ID:
+				print(f"within right side of note: {value.myID}")
+				self.__canvasObject.config(cursor="sb_h_double_arrow")
+				value.pressHoldWidthChange(mousePos)
+			elif value.withinSideOfBox(mousePos) and not value.manualChangeWidth and self.__GLOBAL_MOVE_ID == "":
+				self.__GLOBAL_MOVE_ID = value.myID
+	
+	def manualWidthOff(self):
+		for value in self.existingNotes.values():
+			value.manualChangeWidth = False
+		self.__canvasObject.config(cursor="arrow")
+		self.__GLOBAL_MOVE_ID = ""
+
+	def noteMove(self, mousePos=None):
+		for value in self.existingNotes.values():
+			if (value.withinTopOfBox(mousePos) or value.activeMove) and value.myID == self.__GLOBAL_MOVE_ID:
+				print(f"within note: {value.myID}")
+				self.__canvasObject.config(cursor="fleur")
+				value.pressHoldBoxMove(mousePos)
+			elif value.withinTopOfBox(mousePos) and not value.activeMove and self.__GLOBAL_MOVE_ID == "":
+				self.__GLOBAL_MOVE_ID = value.myID
+	
+	def noteMoveOff(self):
+		for value in self.existingNotes.values():
+			value.activeMove = False
+		self.__canvasObject.config(cursor="arrow")
+		self.__GLOBAL_MOVE_ID = ""
+
+	def createNote(self, newKey, event):
+		self.existingNotes[newKey] = STICKY_NOTE(self.__canvasObject, newKey)
+		self.existingNotes[newKey].createNote(event) ##Creates a blank note & Sets it as active
+		self._activeNoteName = newKey
 	
 	def clearWorkspace(self):
 		for value in self.existingNotes.values():

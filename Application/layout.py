@@ -5,21 +5,29 @@ from Workspace.textEditor import stringInfo
 ##EXPORTS
 __all__ = [
 	"DOC_NAVIGATION",
-	"DIV_NAVIGATION"
+	"DIV_NAVIGATION",
 ]
 
-class layoutInfo(stringInfo):
+class layoutInfo:
 	def __init__(self, parent):
-		stringInfo.__init__(self)
 		self._parent = parent ##The container that a Layout item was placed to. 
 		self._canvasObj = None
 
-		self._activeItems = {} ##Key = Document title, Value = Document Object
-		self._itemPosition = {} ##Key = Document Object, Value = Position of Document Reference
-		self._itemCanvasID = {} ##Key = Document Title, Value = Canvas IDs of document text object
+		self._myFont = None
+		self._myFontSize = None
+		self._myFontHeight = None
+
+		self._activeItems = {} ##Key = Active item title, Value = Active item Object
+		self._itemPosition = {} ##Key = Active item Object, Value = Position of Active item
+		self._itemCanvasID = {} ##Key = Active item Title, Value = Canvas IDs of Active items text object
 
 		self._xOffSet = 10
 		self._yNextSpot = 5
+
+	def set_fontInfo(self, font, fontSize):
+		self._myFont = font
+		self._myFontSize = fontSize
+		self._myFontHeight = font.metrics('linespace')
 
 	def get_canvasObj(self):
 		return self._canvasObj
@@ -49,16 +57,16 @@ class DOC_NAVIGATION(layoutInfo):
 		# print(f"Title: {title}\nObject: {documentObject}")
 
 		self._activeItems[title] = documentObject
-		self._itemPosition[documentObject] = (0, self._yNextSpot-5, self._width, self._yNextSpot+self.myFontHeight+5)
+		self._itemPosition[documentObject] = (0, self._yNextSpot-5, self._width, self._yNextSpot+self._myFontHeight+10)
 		self._canvasObj.create_rectangle(self._itemPosition[documentObject])
 
 		##Displaying Item on Screen
-		self._itemCanvasID[title] = self._canvasObj.create_text(self._xOffSet, self._yNextSpot, anchor="nw", font=(self.myFont, self.myFontSize))
+		self._itemCanvasID[title] = self._canvasObj.create_text(self._xOffSet, self._yNextSpot, anchor="nw", font=(self._myFont, self._myFontSize))
 		self._canvasObj.itemconfigure(self._itemCanvasID[title], text=title)
 
 		##Final Events
 		self._activeItems[title].lastTitle = title
-		self._yNextSpot += (self.myFontHeight+10)
+		self._yNextSpot += (self._myFontHeight+15)
 
 	def updateTitle(self, oldTitle:str, newTitle:str):
 		# print(f"Title at call: {oldTitle} & {newTitle}")
@@ -102,7 +110,6 @@ class DOC_NAVIGATION(layoutInfo):
 					return key
 		return None
 
-
 ##FUTURE
 class DIV_NAVIGATION(layoutInfo):
 	def __init__(self, parent, height):
@@ -115,4 +122,3 @@ class DIV_NAVIGATION(layoutInfo):
 
 		##Config
 		self._canvasObj.grid(column=0, row=0, columnspan=2, sticky="WE")
-		

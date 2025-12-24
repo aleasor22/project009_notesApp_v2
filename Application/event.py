@@ -10,12 +10,15 @@ class EVENTS(HOTKEYS):
 		self._mainApp = None
 		self._settingsPopup = None
 
-		self._activeEvents = {}
+		self._mousePosition = (0, 0)
 
 	def kill(self):
 		if self._settingsPopup != None:
 			self._settingsPopup.destroy()
 		self._mainApp.destroy()
+
+	def currMousePosition(self, event):
+		self._mousePosition = (event.x, event.y)
 
 	def createEvent(self, binding, function, root=None):
 		if root == None:
@@ -29,6 +32,9 @@ class EVENTS(HOTKEYS):
 	def test(self): 
 		##used to test events - Often a placeholder
 		print("Event Tested")
+	
+	def get_mousePos(self):
+		return self._mousePosition
 	
 	def get_mainApp(self):
 		return self._mainApp
