@@ -20,8 +20,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 		##Text Box Widget Variables
 		self.activeMove = False
-		self.manualWidthSet = False
-		self.manualChangeWidth = False
+		self.lockBoxSize = False
+		self.activeWidthChange = False
 		self._moveAnchor = []
 		self._textAnchor = []
 		self.__moveCanvasID = None
@@ -54,8 +54,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.start_Listening()
 
 	def changeWidth(self):
-		##If self.manualWidthSet is True. Then, Prevent any changes to box width
-		if self.isListening and self._activeKeyPress and not self.manualWidthSet:
+		##If self.lockBoxSize is True. Then, Prevent any changes to box width
+		if self.isListening and self._activeKeyPress and not self.lockBoxSize:
 			##Remove old Canvas ID
 			self.__root.delete(self.__boxCanvasID)
 			self.__root.delete(self.__moveCanvasID)
@@ -77,13 +77,24 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__root.delete(self.__moveCanvasID)
 
 			##Adjust box Here
+			# NOTE: Base this off total occurances of the "\n" character?
 			self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentLines)+1) * self.myFontHeight))
 			
 			##Re-Create top box
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
-	def changeWrap(self):
+	def changeTextWrapLive(self):
+		#1. Determin the lines that need to change  based on newest wrap length
+		#2. Determin any words that would be cut off by this new wrap
+		#	a. Could focus on just characters for now - NOTE: Will get changed in future anyway - focus on matrix
+		#	b. Could create a self._contentMatrix that separates based on lines by words
+		#		i. self._contentMatrix[line#][word#]
+		#3. Send these word/character to the next line. 
+		#	a. Starts to get dificult: 
+		# 		i.  If this line that got appeneded at the begining is now also at wrap length. 
+		# 		ii. Those word/characters need sent to begining of the next line
+		#		iii.This will repeat till each line is adjusted to the new wrap length
 		pass
 	
 	def removeEmptyNote(self):
@@ -118,22 +129,24 @@ class STICKY_NOTE(TEXT_EDITOR):
 				print("Within right side of Box")
 				return True
 		return False
-		
 
 	def pressHoldWidthChange(self, mousePos):
+		##Removes old Canvas Widgets
 		self.__root.delete(self.__boxCanvasID)
 		self.__root.delete(self.__moveCanvasID)
 		
+		##Changes box size and wrap length
 		self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
 		self._wrap = mousePos[0] - self.myBbox[0] - self.box_offset_x
+		self.changeTextWrapLive()
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 		self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 		
-		if not self.manualChangeWidth:
-			self.manualChangeWidth = True
-		self.manualWidthSet = True
+		if not self.activeWidthChange:
+			self.activeWidthChange = True
+		self.lockBoxSize = True
 
 	def pressHoldBoxMove(self, mousePos):
 		##Remove previous Canvas Widgets
@@ -162,17 +175,22 @@ class STICKY_NOTE(TEXT_EDITOR):
 				raise Exception("IGNORE")
 				
 			if self.stepCount == 0:
-				# self._contents += currentItem.data
-				if currentItem.next.data != ":END": ##Going to brick when currentItem.next == None
+				# print(f"Curr = {currentItem.data}")
+				# print(f"Next = {currentItem.next.data}")
+				if self._contentLines[0] == "":
+					# print("Change List to []")
+					self._contentLines = []
+
+				if currentItem.next.data != ":END":
 					self._contents += f"{currentItem.data}\n"
 					self._contentLines.append(f"{currentItem.data}\n")
-					self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
+
 				else:
-					##When it's the last element before next data set
-					self._contents += currentItem.data			
-				# print(f"TEXT: {self._contents} | AT STEP: {stepCount}")
+					self._contents += currentItem.data
+					self._contentLines.append(currentItem.data)
+
+				# print(f"TEXT: {self._contents} >> AT STEP: {self.stepCount}")
 				# print(f"TEXT LIST: {self._contentLines}")
-				# print(f"TEXT LENGTH: {self._contentLengthAtLine}")
 			
 			if self.stepCount == 1:
 				self.myBbox.append(int(currentItem.data))
@@ -189,7 +207,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-			self._currLine = len(self._contentLines)
+			self._currLine = len(self._contentLines) - 1
 		else:
 			print("Could not Draw sticky note to screen")
 

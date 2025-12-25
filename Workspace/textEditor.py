@@ -16,7 +16,6 @@ class stringInfo:
 		self._currLine = 0	## The current total line number. NOTE: May get phased out.
 		self._contentLines = [""]	## The ._contents string is split by line.
 		self._longestLine  = 0	## Temporary variable that houses the current longest line. NOTE: May get Phased out.
-		self._contentLengthAtLine = {0:0} ## Stores how long the line is (character count). NOTE: Item 0:0 should never get removed
 		
 		##Font Data
 		self.myFontSize = fontSize
@@ -76,7 +75,6 @@ class TEXT_EDITOR(stringInfo):
 				# print(f"Ignore this: {key}")
 				self._isHotKeyPressed = True
 			if key == key.enter:
-				self.appendCurrentLine("\n")
 				self.onEnterPress()
 			if key == key.space:
 				self.appendCurrentLine(" ")
@@ -86,6 +84,8 @@ class TEXT_EDITOR(stringInfo):
 			if key == key.backspace:
 				self._backSpaceActive = True
 				self.onBackSpace()
+		except IndexError as E:
+			print(f"Caught Error in TEXT_EDITOR.pressed:\n>>{E}\n")
 		finally:
 			##This logic happens no mater the above results
 			self.myFontLength = self.myFont.measure(self._contents) ##Updates Total length of String, NOTE: DOESN'T KNOW ABOUT WRAPING OR NEWLINE CHARACTER
@@ -93,13 +93,12 @@ class TEXT_EDITOR(stringInfo):
 			# print(f"Add new Key to screen: {key}")
 			
 			##Resize box on wrap
+			# print(f"self._contents = {self._contents} <<\n")
 			toWrap = self.myFont.measure(self._contentLines[self._currLine])
 			# print(toWrap > self._wrap, ":toWrap bool")
 			if toWrap > self._wrap and not self._backSpaceActive:
-				self._contents += "\n"
-				self.appendCurrentLine("\n")
-				self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
-				self._currLine += 1
+				self.onEnterPress()
+				print(f"Wrap happened w/ keypress: {key}")
 			print(self._contentLines, "append")
 
 	def released(self, key):
@@ -110,6 +109,8 @@ class TEXT_EDITOR(stringInfo):
 			if key in self._hotKeyList:
 				# print(f"Ignore this: {key}")
 				self._isHotKeyPressed = False
+			if key == key.backspace:
+				self._backSpaceActive = False
 		finally:
 			##This logic happens no mater the above results
 			pass
@@ -120,8 +121,8 @@ class TEXT_EDITOR(stringInfo):
 			# print("Nothing Happens")
 			self.stop_Listening()
 		else:
+			self.appendCurrentLine("\n")
 			self._contents += "\n"
-			self._contentLengthAtLine[len(self._contentLengthAtLine)] = len(self._contents)
 			self._currLine += 1
 			# print(self._contentLines, "append")
 
@@ -134,23 +135,22 @@ class TEXT_EDITOR(stringInfo):
 			tempLine = self._contentLines[self._currLine]
 		if len(temp) > 0 and tempLine != None:
 			self._contents = temp.rstrip(self.get_lastChar_inString(temp))
-			self._contentLines[self._currLine] = tempLine.rstrip(self.get_lastChar_inCurrentLine())
+			print(f"Length of line: {len(self._contentLines[self._currLine])}")
+			if len(self._contentLines[self._currLine]) > 0:
+				self._contentLines[self._currLine] = tempLine.rstrip(self.get_lastChar_inCurrentLine())
 			
-			if self.get_lastChar_inString(temp) == "\n":
+			if self.get_lastChar_inString(temp) == "\n" or len(self._contentLines[self._currLine]) == 0:
 				if len(self._contentLines) >= 0:
-					self._contentLengthAtLine.popitem()
-					self._contentLines.pop()
+					test = self._contentLines.pop()
 					self._currLine -= 1
-					# print(self._contentLengthAtLine, "pop")
+					print(f"This was popped: {test}")
 			
 			##Reset variables if self._contents string is empty
 			if len(self._contents) == 0:
-				self._contentLengthAtLine = {0:0}
 				self._contentLines = [""]
 				self._currLine = 0
-				# print(self._contentLengthAtLine, "pop")
 
-		self._backSpaceActive = False
+		# self._backSpaceActive = False
 
 	def longestLine(self):
 		##Compare current line with other lines. Determine if the current is the longest
@@ -201,7 +201,8 @@ class TEXT_EDITOR(stringInfo):
 		try:
 			return self._contentLines[self._currLine][len(self._contentLines[self._currLine])-1]
 		except IndexError as E:
-			print(f"Index Error @lastChar_inCurrentLine\n>> {E}")
+			print(f"String Index: {len(self._contentLines[self._currLine])-1}")
+			print(f"Index Error @lastChar_inCurrentLine\n\t>> {E} <<\n")
 
 	def get_lastChar_inString(self, string:str=""):
 		try:
@@ -209,4 +210,4 @@ class TEXT_EDITOR(stringInfo):
 				string = self._contents
 			return string[len(string)-1]
 		except IndexError as E:
-			print(f"\nIndex Error @lastChar_inString\n>> {E} <<\n")
+			print(f"\nIndex Error @lastChar_inString\n>> {string} <<\n")

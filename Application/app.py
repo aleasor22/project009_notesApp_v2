@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.71]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.72]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -19,6 +19,9 @@ class APP(MENU):
 		self._mainApp = tkinter.Tk()
 		self._mainApp.title(titleString)
 		self._mainApp.geometry(f"{width}x{height}")
+
+		##Public Variables
+		self.shutdown = False
 
 		##Workspace Declarations
 		self.__docLayout = DOC_NAVIGATION(self._mainApp, width)
@@ -76,6 +79,7 @@ class APP(MENU):
 		self._mainApp.mainloop()
 	
 	def onClose(self, event):
+		self.shutdown = True
 		if event.widget == self._mainApp:
 			for value in self.__workspace.values():
 				value.saveDocument()
@@ -96,7 +100,8 @@ class APP(MENU):
 					value.lastTitle = activeTitle
 	
 	def stickyNoteUpdates(self):
-		for workspace in self.__workspace.values():
+		workspace = self.get_workspace()
+		if workspace != None:
 			for sticky_note in workspace.existingNotes.values():
 				sticky_note.changeWidth()
 				sticky_note.changeHeight()
@@ -109,8 +114,9 @@ class APP(MENU):
 	def set_refreshRate(self, fps):
 		self.__refreshRate = int(fps)
 	
-	##NOTE This will change to only return active canvas.
+	##NOTE This will only return the active canvas.
 	def get_workspace(self):
 		for value in self.__workspace.values():
 			if value.activeDoc:
 				return value
+		return None

@@ -105,16 +105,16 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 	
 	def manualChangeWidth(self, mousePos):
 		for value in self.existingNotes.values():
-			if (value.withinSideOfBox(mousePos) or value.manualChangeWidth) and value.myID == self.__GLOBAL_MOVE_ID:
+			if (value.withinSideOfBox(mousePos) or value.activeWidthChange) and value.myID == self.__GLOBAL_MOVE_ID:
 				print(f"within right side of note: {value.myID}")
 				self.__canvasObject.config(cursor="sb_h_double_arrow")
 				value.pressHoldWidthChange(mousePos)
-			elif value.withinSideOfBox(mousePos) and not value.manualChangeWidth and self.__GLOBAL_MOVE_ID == "":
+			elif value.withinSideOfBox(mousePos) and not value.activeWidthChange and self.__GLOBAL_MOVE_ID == "":
 				self.__GLOBAL_MOVE_ID = value.myID
 	
 	def manualWidthOff(self):
 		for value in self.existingNotes.values():
-			value.manualChangeWidth = False
+			value.activeWidthChange = False
 		self.__canvasObject.config(cursor="arrow")
 		self.__GLOBAL_MOVE_ID = ""
 
