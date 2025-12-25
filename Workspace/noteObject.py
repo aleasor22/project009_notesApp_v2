@@ -39,19 +39,19 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.__root.delete(self.__moveCanvasID)
 		self.__root.delete(self._textCanvasID)
 		if self.isListening:
-			self.stop_Listening()
+			self.stop_keyboard()
 	
 	def createNote(self, event):
-		self.myBbox = [event.x, event.y-10, event.x+int(self._wrap/2)+self.box_offset_x, event.y+self.box_offset_y+self.myFontHeight]
+		self.myBbox = [event.x, event.y-10, event.x+int(self._wrapLength/2)+self.box_offset_x, event.y+self.box_offset_y+self._myFontHeight]
 		# self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
 		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=(self.myFont, self.myFontSize))#, width=100)
+		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.get_myFontPackage())
 		
 		self.active = True
-		self.start_Listening()
+		self.start_keyboard()
 
 	def changeWidth(self):
 		##If self.lockBoxSize is True. Then, Prevent any changes to box width
@@ -61,10 +61,11 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__root.delete(self.__moveCanvasID)
 
 			##Adjust box Here
-			defaultWidth = int(self._wrap/2)+self.box_offset_x
+			defaultWidth = int(self._wrapLength/2)+self.box_offset_x
 
-			if self.myFont.measure(self.longestLine()) >= int(0.75 * defaultWidth):
-				self.changeBBox(2, self.myBbox[0]+self.myFont.measure(self.longestLine())+int(0.25 * defaultWidth))
+			# print("LongestLine", self.longestLine())
+			if self._myFont.measure(self.longestLine()) >= int(0.75 * defaultWidth):
+				self.changeBBox(2, self.myBbox[0]+self._myFont.measure(self.longestLine())+int(0.25 * defaultWidth))
 
 			##Re-Create top box
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
@@ -77,29 +78,21 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__root.delete(self.__moveCanvasID)
 
 			##Adjust box Here
-			# NOTE: Base this off total occurances of the "\n" character?
-			self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentLines)+1) * self.myFontHeight))
+			if self._enterKeyActive:
+				self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentBreakdown)+2) * self._myFontHeight))
+			else:
+				self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentBreakdown)+1) * self._myFontHeight))
 			
 			##Re-Create top box
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
 	def changeTextWrapLive(self):
-		#1. Determin the lines that need to change  based on newest wrap length
-		#2. Determin any words that would be cut off by this new wrap
-		#	a. Could focus on just characters for now - NOTE: Will get changed in future anyway - focus on matrix
-		#	b. Could create a self._contentMatrix that separates based on lines by words
-		#		i. self._contentMatrix[line#][word#]
-		#3. Send these word/character to the next line. 
-		#	a. Starts to get dificult: 
-		# 		i.  If this line that got appeneded at the begining is now also at wrap length. 
-		# 		ii. Those word/characters need sent to begining of the next line
-		#		iii.This will repeat till each line is adjusted to the new wrap length
 		pass
 	
 	def removeEmptyNote(self):
 		# print(f"{self.myID} is active? {self.active}")
-		if self._contents == "" and not self.active:
+		if self.get_contents == "" and not self.active:
 			self.toBeDeleted = True
 			self.deleteCanvasIDs()
 
@@ -137,7 +130,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		
 		##Changes box size and wrap length
 		self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
-		self._wrap = mousePos[0] - self.myBbox[0] - self.box_offset_x
+		self._wrapLength = mousePos[0] - self.myBbox[0] - self.box_offset_x
 		self.changeTextWrapLive()
 
 		##Create New Canvas Widgets
@@ -165,7 +158,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 			##Create New Canvas Widgets
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self._contents, anchor="nw", font=(self.myFont, self.myFontSize))
+			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self._contents, anchor="nw", font=self.get_myFontPackage())
 
 	def loadFromFile(self, currentItem):
 		try:
@@ -205,7 +198,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 	def drawToScreen(self):
 		if not self._activeError:
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self.myFont, text=self._contents)
+			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self._myFont, text=self._contents)
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self._currLine = len(self._contentLines) - 1
 		else:
@@ -225,9 +218,6 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 	def get_boxID(self):
 		return self.__boxCanvasID
-	
-	def get_contents(self):
-		return self._contents
 
 	def changeBBox(self, index:int, newValue:int):
 		"""

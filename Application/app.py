@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.72]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.73]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -38,7 +38,7 @@ class APP(MENU):
 			value.activeDoc = False
 		
 		self.__workspace[key] = DOCUMENT(self._mainApp, key, self.__screenWidth)
-		fontInfo = self.__workspace[key].get_fontInfo()
+		fontInfo = self.__workspace[key].get_myFontPackage()
 		self.__docLayout.set_fontInfo(fontInfo[0], fontInfo[1])
 		self.__workspace[key].activeDoc = True
 		self.__docLayout.newDocument(self.__workspace[key].get_title(), self.__workspace[key])
@@ -49,7 +49,7 @@ class APP(MENU):
 
 		##Setting Up Global Hotkeys
 		self.addHotkeyCommand("Exit", self.kill, "<esc>")
-		self.addHotkeyCommand("Save", self.__workspace["Canvas-#0"].saveDocument)
+		# self.addHotkeyCommand("Save", self.__workspace["Canvas-#0"].saveDocument)
 		# self.addHotkeyCommand("Open", self.__workspace["Canvas-#0"].openDocument)
 		self.start_hotKeyListener()
 		self.start_mouseListener()
@@ -64,7 +64,8 @@ class APP(MENU):
 
 		##Loads Last Save at launch
 		try:
-			self.__workspace["Canvas-#0"].openDocument()
+			# self.__workspace["Canvas-#0"].openDocument()
+			pass
 		except FileNotFoundError:
 			with open(self._fileLocation, "w") as f:
 				f.write("")
@@ -80,9 +81,9 @@ class APP(MENU):
 	
 	def onClose(self, event):
 		self.shutdown = True
-		if event.widget == self._mainApp:
-			for value in self.__workspace.values():
-				value.saveDocument()
+		# if event.widget == self._mainApp:
+		# 	for value in self.__workspace.values():
+		# 		value.saveDocument()
 	
 	def navigationUpdates(self, ):
 		for value in self.__workspace.values():
@@ -105,7 +106,7 @@ class APP(MENU):
 			for sticky_note in workspace.existingNotes.values():
 				sticky_note.changeWidth()
 				sticky_note.changeHeight()
-				sticky_note.changeWrap()
+				# sticky_note.changeWrap()
 				sticky_note.removeEmptyNote()
 	
 	def get_refreshRate(self):

@@ -26,9 +26,9 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 		self.__GLOBAL_MOVE_ID = ""
 
 		##Canvas IDs
-		self.__titleBlockZone	 = [0, 0, 250, self.myFontHeight+40]
+		self.__titleBlockZone	 = [0, 0, 250, self._myFontHeight+40]
 		self.__titleZoneCanvasID = self.__canvasObject.create_rectangle(self.__titleBlockZone) ##Rough outline of where the title block goes. 
-		self.__titleLinePosition = [20, self.myFontHeight+30, 230, self.myFontHeight+30]
+		self.__titleLinePosition = [20, self._myFontHeight+30, 230, self._myFontHeight+30]
 		self.__titleLineCanvasID = self.__canvasObject.create_line(self.__titleLinePosition)
 	
 		##Public Variables
@@ -44,7 +44,7 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 		self.__parent.rowconfigure(1, weight=10)
 		
 		#CUSTOM SETUPS
-		self._textCanvasID = self.__canvasObject.create_text(self.__titleLinePosition[0], self.__titleLinePosition[1]-self.myFontHeight-10, anchor	= "nw",	font = (self.myFont, self.myFontSize))
+		self._textCanvasID = self.__canvasObject.create_text(self.__titleLinePosition[0], self.__titleLinePosition[1]-self._myFontHeight-10, anchor	= "nw",	font=self.get_myFontPackage())
 
 	##EVENT METHODS	
 	def onClick(self, event):
@@ -52,16 +52,16 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 			print("Edit the Title Block")
 			##Set Title Block as active
 			if not self.isListening:
-				self.start_Listening()
+				self.start_keyboard()
 
 			##De-activate Current Sticky Note.
 			if self._activeNoteName != "":
-				self.existingNotes[self._activeNoteName].stop_Listening()
+				self.existingNotes[self._activeNoteName].stop_keyboard()
 				self.existingNotes[self._activeNoteName].active = False
 				self._activeNoteName = ""
 		else:
 			# print("Create/Edit a Note")
-			self.stop_Listening()
+			self.stop_keyboard()
 
 			##Refresh Dictionary
 			for key, value in self.existingNotes.items():
@@ -78,7 +78,7 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 				newKey = f"Note-#{keyCounter}"
 				keyCounter += 1
 			
-			# print("Notes Dict", self.existingNotes)
+			print("Notes Dict", self.existingNotes)
 			if (len(self.existingNotes) > 0):
 				self._activeNoteName = ""
 				for value in self.existingNotes.values():
@@ -86,10 +86,10 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 						print(f"Editing Note: {value.myID}")
 						self._activeNoteName = value.myID
 						value.active = True ##Sets note as active
-						value.start_Listening() ##Allows editing the note
+						value.start_keyboard() ##Allows editing the note
 					else:
 						value.active = False
-						value.stop_Listening()
+						value.stop_keyboard()
 
 				if self._activeNoteName == "": ##If a note's not getting edited
 					print(f"Creating New Note: {newKey}")
@@ -197,4 +197,4 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 		self.__canvasObject.itemconfigure(self._textCanvasID, text=title)
 
 	def get_title(self):
-		return self._contents
+		return self.get_contents()

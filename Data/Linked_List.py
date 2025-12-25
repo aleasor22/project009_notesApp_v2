@@ -15,6 +15,7 @@ class LINKED_LIST:
 	def __init__(self):
 		self.head = None
 
+	##Adding Elements to the list
 	def add_head(self, data):
 		if self.head != None:
 			newData = NODE(data)
@@ -32,7 +33,48 @@ class LINKED_LIST:
 			lastElement.next = NODE(data, lastElement)
 		else:
 			self.head = NODE(data)
+	
+	##Removes and returns popped element from the list
+	def popElement(self, index:int=-1):
+		#Pops last element in the list
+		try:
+			if index == -1:
+				if self.findLastElement() == self.head:
+					self.popElement(0)
+					raise AttributeError("IGNORE")
+				
+				lastElement = self.findLastElement()
+				lastElement.prev.next = None
+				return lastElement
+			elif index == 0:
+				oldHead = self.head
+				self.head = self.head.next
+				return oldHead
+			else:
+				target = self.findElementAtIndex(index)
+				target.prev.next = target.next
+				return target
+		except AttributeError as E:
+			# print(f"Error #LINKED_LIST.popELement({index})\n>> {E} <<\n")
+			return None
+			
+	def replaceElementAtInddex(self, data, index:int=-1):
+		pass
 
+	def findElementAtIndex(self, index:int=-1):
+		if index == -1:
+			return self.findLastElement()
+
+		curr = self.head
+		elementCount = 0
+		while curr != None:
+			if elementCount == index:
+				return curr
+			
+			##Next element in list
+			curr = curr.next
+			elementCount += 1
+		
 	def findLastElement(self):
 		curr = self.head
 		while curr.next != None:
@@ -51,9 +93,15 @@ class LINKED_LIST:
 
 # test.add_head(10)
 # test.add_head(5)
-# test.add_tail("Last 1")
 # test.add_head(39)
 # test.add_head(23)
-# test.add_tail("Last 2")
 
+# print("Original")
+# test.printList()
+
+# # print(test.findElementAtIndex().data)
+# # print(test.popElement().data)
+# print(test.popElement(0).data)
+
+# print("Post-Edits")
 # test.printList()

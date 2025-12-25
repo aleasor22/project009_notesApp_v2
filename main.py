@@ -10,7 +10,7 @@ def refresh():
 	Window.navigationUpdates()
 	Window.stickyNoteUpdates()
 	try:
-		if Window.get_isMouseButtonPressed("M1"):
+		if Window.get_isMouseButtonPressed("M1") and Window.get_workspace() != None:
 			# print(Window.get_isMouseButtonPressed("M1"))
 			Window.get_workspace().noteMove(Window.get_mousePos())
 			Window.get_workspace().manualChangeWidth(Window.get_mousePos())
