@@ -51,13 +51,18 @@ class STRING_EDITOR:
 		self.__contentBreakdown[len(self.__contentBreakdown)-1].popElement()
 	
 	def wrapWord(self, ):
-		currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._currentLine]))
-		if not self._backSpaceActive:
-			if self._wrapLength < currentLength:
-				self._toWrap = True
-				print("Wrap possible")
-		else:
-			self._toWrap = False
+		if len(self.__contentBreakdown) > 0:
+			currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._currentLine]))
+			if not self._backSpaceActive:
+				if self._wrapLength < currentLength:
+					self._toWrap = True
+					print("Wrap possible")
+			else:
+				self._toWrap = False
+		
+		##Updates self._currentLine to the length  of the .__contentBreakdown list.
+		# self._currentLine = len(self.__contentBreakdown)-1 #NOTE: Is this needed?
+		
 
 	def longestLine(self):
 		try:
@@ -102,6 +107,11 @@ class STRING_EDITOR:
 	##Setters/Getters
 	def set_contents(self, content):
 		self.__contents = content
+
+	def add_contentToBreakdown(self, data):
+		self.__contentBreakdown.append(LINKED_LIST())
+		self.__contentBreakdown[-1].add_head(data)
+		self._currentLine = len(self.__contentBreakdown)-1
 
 	def get_contents(self):
 		return self.__contents

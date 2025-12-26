@@ -19,7 +19,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.text_offset = 5
 
 		##Text Box Widget Variables
-		self.activeMove = False
+		self.activeMove  = False
 		self.lockBoxSize = False
 		self.activeWidthChange = False
 		self._moveAnchor = []
@@ -29,6 +29,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.myBbox = []		##(x1, y1, x2, y2)
 		self.box_offset_x = 20	##The Box Pad in the x direction
 		self.box_offset_y = 10	##The Box Pad in the y direction
+		self.minBoxSize  = int(self._wrapLength/3)+self.box_offset_x
 
 		##SAVE/LOAD from Files:
 		self.stepCount = 0
@@ -54,7 +55,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 	def changeWidth(self):
 		##If self.lockBoxSize is True. Then, Prevent any changes to box width
-		if self.isListening and self._activeKeyPress and not self.lockBoxSize:
+		if self.isListening and self._activeKeyPress and (not self.lockBoxSize or self.minBoxSize < (self.myBbox[2]-self.myBbox[0])):
 			##Remove old Canvas ID
 			self.__root.delete(self.__boxCanvasID)
 			self.__root.delete(self.__moveCanvasID)
@@ -79,6 +80,9 @@ class STICKY_NOTE(TEXT_EDITOR):
 			##Adjust box Here
 			if self._enterKeyActive:
 				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+2) * self._myFontHeight))
+			elif len(self.get_contentBreakdown()) == 0:
+				#Prevents the box from strinking when typing text into a blank sticky note
+				pass
 			else:
 				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+1) * self._myFontHeight))
 			
@@ -87,9 +91,50 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
 	def changeTextWrapLive(self):
-	# 	print(self.get_contentBreakdown()[])
+		text = self.get_contentBreakdown()
+		print("ELEMENTS:", text)
+		for i in range(len(text)):
+			##check if this line is longer or shorter than the current ._wrapLength
+			print(f"String Builder: {self.stringBuilder(text[i])}")
+			print(f"Difference: {self._wrapLength} >= {self._myFont.measure(self.stringBuilder(text[i]))}")
+			if self._wrapLength >= self._myFont.measure(self.stringBuilder(text[i])): ##Longer?
+				curr = text[i].findLastElement()
+				larger = True ##When text[i] is longer than wrapLength, this is true
+				while larger:
+					# 	##I need to make a new line element.
+					# 	self.add_contentToBreakdown(text[i].popElement().data)
+					# 	self.changeTextWrapLive() ##RECURSION - need to call this after adding a new line. 
+						
+					# 	##When I Return to this point, set larger to false, and break the loop
+					# 	larger = False
+					# 	break
+					try:
+						if i+1 >= len(text): #When the next index is not in the existing list - I need to add new element line
+							self.add_contentToBreakdown(text[i].popElement().data) #this removes the last character and adds is to the new line
+							# self.changeTextWrapLive() ##Call it's self - this is to adjust the "text" varible with the new list
+							larger = False ##Make the loop boolean false - Makes sure the loop ends
+							break ##Exit the loop
+						elif i+1 < len(text): #Verify the next index exists
+							text[i+1].add_head(text[i].popElement().data)
 
-		pass
+					except IndexError as E:
+						print(f"STICKY_NOTE.changeTextWrapLive()\n>> {E} @index: {i} <<\n")
+					except AttributeError as E:
+						print(f"STICKY_NOTE.changeTextWrapLive()\n>> {E} <<\n")
+					
+					if curr == None: ##Ends loop
+						larger = False
+					else: ##Otherwise continue
+						curr = curr.prev
+
+					##Ends the loop - Keep at end
+					if curr == text[i].head or self._wrapLength > self._myFont.measure(self.stringBuilder(text[i])):
+						##If the text is now smaller than the wrap length
+						larger = False
+				pass
+			else: ##Shorter?
+				pass
+		
 	
 	def removeEmptyNote(self):
 		# print(f"{self.myID} is active? {self.active}")
@@ -130,9 +175,10 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.__root.delete(self.__moveCanvasID)
 		
 		##Changes box size and wrap length
-		self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
-		self._wrapLength = mousePos[0] - self.myBbox[0] - self.box_offset_x
-		self.changeTextWrapLive()
+		if self.minBoxSize < (mousePos[0]-self.myBbox[0]):
+			self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
+			self._wrapLength = mousePos[0] - self.myBbox[0] - self.box_offset_x
+			self.changeTextWrapLive()
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
