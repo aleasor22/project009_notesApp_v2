@@ -25,6 +25,29 @@ class LINKED_LIST:
 		else:
 			self.head = NODE(data)
 
+	def replaceElementAtIndex(self, data, index:int=-1):
+		if index == -1:
+			self.add_head(data)
+		
+		new = NODE(data)
+		target = self.findElementAtIndex(index)
+		print(f"Target: {target.data}")
+		target.prev.next = new
+		new.next = target.next
+		target.next.prev = new
+	
+	def insertElementAtIndex(self, data, index:int=-1):
+		if index == -1:
+			self.add_head(data)
+		
+		new = NODE(data)
+		target = self.findElementAtIndex(index)
+		print(f"Target: {target.data}")
+		target.prev.next = new
+		new.next = target
+		target.prev = new
+
+
 	def add_tail(self, data):
 		# print("Happens?")
 		if self.head != None:
@@ -57,9 +80,31 @@ class LINKED_LIST:
 		except AttributeError as E:
 			# print(f"Error #LINKED_LIST.popELement({index})\n>> {E} <<\n")
 			return None
+
+	def findElementsInRange(self, start:int, end:int=-1):
+		try:
+			if start < 0:
+				raise IndexError(f"Start index out of range: {start}")
+			elif end > self.getListLength():
+				raise IndexError(f"End index out of range: {end}")
+			elif end == -1:
+				end = self.getListLength()
+
+			newList = LINKED_LIST()
+			curr = self.findElementAtIndex(start)
+			newList.head = curr
+			while curr != self.findElementAtIndex(end):
+				newList.add_tail(curr.data)
+				curr = curr.next
 			
-	def replaceElementAtInddex(self, data, index:int=-1):
-		pass
+			return newList
+			
+		except IndexError as E:
+			print(f"Error @LINKED_LIST.findElementsInRange\n>> {E} <<")
+			return None
+		except AttributeError as E:
+			print(f"Error @LINKED_LIST.findElementsInRange\n>> {E} <<")
+			return None
 
 	def findElementAtIndex(self, index:int=-1):
 		if index == -1:
@@ -76,10 +121,21 @@ class LINKED_LIST:
 			elementCount += 1
 		
 	def findLastElement(self):
+		try:
+			curr = self.head
+			while curr.next != None:
+				curr = curr.next
+			return curr
+		except AttributeError as E:
+			return self.head
+	
+	def getListLength(self):
 		curr = self.head
-		while curr.next != None:
+		count = 0
+		while curr != None:
+			count += 1
 			curr = curr.next
-		return curr
+		return count
 
 	def printList(self):
 		curr = self.head
@@ -102,6 +158,7 @@ class LINKED_LIST:
 # # print(test.findElementAtIndex().data)
 # # print(test.popElement().data)
 # print(test.popElement(0).data)
+# test.insertElementAtIndex("new", 2)
 
 # print("Post-Edits")
 # test.printList()

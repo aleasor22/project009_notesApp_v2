@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.73]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.73-2]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -106,7 +106,7 @@ class APP(MENU):
 			for sticky_note in workspace.existingNotes.values():
 				sticky_note.changeWidth()
 				sticky_note.changeHeight()
-				# sticky_note.changeWrap()
+				sticky_note.changeTextWrapLive()
 				sticky_note.removeEmptyNote()
 	
 	def get_refreshRate(self):

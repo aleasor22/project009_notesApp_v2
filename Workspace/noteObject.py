@@ -26,10 +26,9 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self._textAnchor = []
 		self.__moveCanvasID = None
 		self.__boxCanvasID = None
-		# self.coords  = (0, 0)       ##(x, y)
-		self.myBbox = [] ##(x1, y1, x2, y2)
-		self.box_offset_x = 20          ##The offset from original Top-Left position
-		self.box_offset_y = 10
+		self.myBbox = []		##(x1, y1, x2, y2)
+		self.box_offset_x = 20	##The Box Pad in the x direction
+		self.box_offset_y = 10	##The Box Pad in the y direction
 
 		##SAVE/LOAD from Files:
 		self.stepCount = 0
@@ -79,15 +78,17 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 			##Adjust box Here
 			if self._enterKeyActive:
-				self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentBreakdown)+2) * self._myFontHeight))
+				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+2) * self._myFontHeight))
 			else:
-				self.changeBBox(3, self.myBbox[1]+self.text_offset+((len(self._contentBreakdown)+1) * self._myFontHeight))
+				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+1) * self._myFontHeight))
 			
 			##Re-Create top box
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
 	def changeTextWrapLive(self):
+	# 	print(self.get_contentBreakdown()[])
+
 		pass
 	
 	def removeEmptyNote(self):

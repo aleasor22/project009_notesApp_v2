@@ -6,15 +6,18 @@ from Data import LINKED_LIST
 ##EXPORTS
 __all__ = [
 	"TEXT_EDITOR",
-	"stringInfo"
+	"STRING_EDITOR"
 ]
 
-class stringInfo:
+class STRING_EDITOR:
 	def __init__(self, fontSize:int=11):
 		##String Information:
-		self.__contents = ""
-		self._contentBreakdown = [] ##Houses linked lists of each line.
-		self._currentLine = 0		##Holds the currently active line.
+		self.__contents 	= ""
+		self.__contentBreakdown = [] ##Houses linked lists of each line.
+		self._currentLine 	= 0		 ##Holds the currently active line.
+		self._textCanvasID  = None
+		self._wrapLength	= 200
+		self._toWrap		= False
 
 		##Font Information:
 		self._myFont		= tkFont.nametofont("TkDefaultFont")
@@ -22,37 +25,46 @@ class stringInfo:
 		self._myFontHeight	= self._myFont.metrics('linespace')
 
 	def writeToContents(self):
-		"""This will handle reading self._contentBreakdown into self.__contents. This needs to be done before writing to screen"""
+		"""This will handle reading self.__contentBreakdown into self.__contents. This needs to be done before writing to screen"""
 		self.__contents = ""
-		for line in self._contentBreakdown:
+		for line in self.__contentBreakdown:
 			self.__contents += self.stringBuilder(line)
 			# print("Contents:", self.__contents)
 		
 		return self.__contents
 
 	def appendContentBreakdown(self, char:str):
-		if self._contentBreakdown == [] or char == "\n":
+		if self.__contentBreakdown == [] or char == "\n":
 			##Create new linked list, if ._contentBreakdown is empty or a newline is created.
-			self._contentBreakdown.append(LINKED_LIST())
-			self._contentBreakdown[self._currentLine].add_tail(char)
-			self._currentLine = len(self._contentBreakdown)-1
+			self.__contentBreakdown.append(LINKED_LIST())
+			self.__contentBreakdown[self._currentLine].add_tail(char)
+			self._currentLine = len(self.__contentBreakdown)-1
 			# print(f"char passed: >> {char} <<")
 		else:
-			self._contentBreakdown[self._currentLine].add_tail(char)
+			self.__contentBreakdown[self._currentLine].add_tail(char)
 
 	def popContentBreakdown(self, index:int=-1):
-		if self._contentBreakdown[self._currentLine].head == None and self._currentLine > 0:
+		if self.__contentBreakdown[self._currentLine].head == None and self._currentLine > 0:
 			print("head empty")
-			self._contentBreakdown.pop()
-			self._currentLine = len(self._contentBreakdown)-1
-		self._contentBreakdown[len(self._contentBreakdown)-1].popElement()
+			self.__contentBreakdown.pop()
+			self._currentLine = len(self.__contentBreakdown)-1
+		self.__contentBreakdown[len(self.__contentBreakdown)-1].popElement()
+	
+	def wrapWord(self, ):
+		currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._currentLine]))
+		if not self._backSpaceActive:
+			if self._wrapLength < currentLength:
+				self._toWrap = True
+				print("Wrap possible")
+		else:
+			self._toWrap = False
 
 	def longestLine(self):
 		try:
-			LONGEST_LINE = self.stringBuilder(self._contentBreakdown[0])
+			LONGEST_LINE = self.stringBuilder(self.__contentBreakdown[0])
 			CURRENT_LINE = ""
 
-			for line in self._contentBreakdown:
+			for line in self.__contentBreakdown:
 				CURRENT_LINE = self.stringBuilder(line)
 				if self._myFont.measure(LONGEST_LINE) < self._myFont.measure(CURRENT_LINE):
 					# print(f"stringA({CURRENT_LINE}) is larger than stringB({LONGEST_LINE})")
@@ -60,8 +72,24 @@ class stringInfo:
 			# print(f"Longest Line: {LONGEST_LINE}")
 			return LONGEST_LINE
 		except IndexError as E:
-			print(f"Error @stringInfo.longetsLine()\n>> {E} <<\n")
+			print(f"Error @STRING_EDITOR.longetsLine()\n>> {E} <<\n")
 			return ""
+	
+	def wordBuilder(self, string:LINKED_LIST):
+		curr = string.head
+		# print(curr.data)
+		wordList = LINKED_LIST()
+		currWord = ""
+		while curr != None:
+			if curr.data == " ":
+				wordList.add_tail(currWord)
+				currWord = ""
+				curr = curr.next
+				continue
+			currWord += curr.data
+			curr = curr.next
+
+		return wordList
 
 	def stringBuilder(self, string:LINKED_LIST):
 		curr = string.head
@@ -77,6 +105,17 @@ class stringInfo:
 
 	def get_contents(self):
 		return self.__contents
+	
+	def get_contentBreakdown(self, index:int=-1):
+		try:
+			if index == -1:
+				raise IndexError
+			return self.__contentBreakdown[index]
+		except IndexError as E:
+			return self.__contentBreakdown
+	
+	def get_contentBreakdownLength(self):
+		return len(self.__contentBreakdown)
 
 	def get_myFontPackage(self):
 		return (self._myFont, self._myFontSize)
@@ -92,15 +131,13 @@ class TEXT_BITMAPS:
 		pass
 
 
-class TEXT_EDITOR(stringInfo):
+class TEXT_EDITOR(STRING_EDITOR):
 	"""Used to edit/change text in any object that needs text."""
 	def __init__(self, childsRoot, childID, fontSize:int=9):
-		stringInfo.__init__(self, fontSize)
+		STRING_EDITOR.__init__(self, fontSize)
 		##Text Editing
 		self.__root = childsRoot
 		self.__childID = childID
-		self._textCanvasID  = None
-		self._wrapLength	= 200
 		
 		##Keyboard Listener Information
 		self.__listener	 = None
@@ -110,12 +147,14 @@ class TEXT_EDITOR(stringInfo):
 			keyboard.Key.alt_l,
 			keyboard.Key.ctrl_l,
 			keyboard.Key.ctrl_r,
+			# keyboard.Key.shift,
 			keyboard.Key.esc
 		]
 		self._isHotKeyPressed = False
 		self._backSpaceActive = False
 		self._enterKeyActive  = False
 		self._activeKeyPress  = False
+		self._isCapsLocked	  = False
 
 	##Actions when listening to the Keyboard.
 	def pressed(self, key):
@@ -123,7 +162,10 @@ class TEXT_EDITOR(stringInfo):
 			# print(f"Key Pressed: {key.char}") ##Used for Debug
 			if not self._isHotKeyPressed:
 				self._activeKeyPress = True
-				self.appendContentBreakdown(key.char)
+				if self._isCapsLocked:
+					self.appendContentBreakdown(key.char.upper())
+				else:
+					self.appendContentBreakdown(key.char)
 		except AttributeError:
 			# print(f"Key Pressed: {key}") ##Used for Debug
 			self._activeKeyPress = True
@@ -137,8 +179,12 @@ class TEXT_EDITOR(stringInfo):
 				pass
 			if key == key.space:
 				##When "Space" is pressed
-				self.appendContentBreakdown(" ")
-				pass
+				if self._toWrap:
+					self.get_contentBreakdown(self._currentLine).printList()
+					self._toWrap = False
+					self.appendContentBreakdown("\n")
+				else:
+					self.appendContentBreakdown(" ")
 			if key == key.tab:
 				##When "Tab" is pressed
 				self.appendContentBreakdown("\t")
@@ -147,6 +193,11 @@ class TEXT_EDITOR(stringInfo):
 				##When "Backspace" is pressed
 				self._backSpaceActive = True
 				self.popContentBreakdown()
+			if key == key.caps_lock:
+				if not self._isCapsLocked:
+					self._isCapsLocked = True
+				elif self._isCapsLocked:
+					self._isCapsLocked = False
 		except IndexError as E:
 			print(f"Caught Error in TEXT_EDITOR.pressed:\n>>{E}\n")
 		finally:
@@ -154,7 +205,7 @@ class TEXT_EDITOR(stringInfo):
 			# print(f"Key Pressed: {key}") ##Used for  Debug
 			if self._textCanvasID != None:
 				self.__root.itemconfigure(self._textCanvasID, text=self.writeToContents())
-			pass
+			self.wrapWord()
 
 	def released(self, key):
 		try:

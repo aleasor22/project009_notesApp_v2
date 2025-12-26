@@ -1,6 +1,5 @@
 ##IMPOTS
 import tkinter
-from Workspace.textEditor import stringInfo
 
 ##EXPORTS
 __all__ = [
