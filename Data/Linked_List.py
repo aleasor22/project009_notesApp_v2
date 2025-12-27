@@ -14,6 +14,7 @@ class NODE:
 class LINKED_LIST:
 	def __init__(self):
 		self.head = None
+		self.length = 0
 
 	##Adding Elements to the list
 	def add_head(self, data):
@@ -24,6 +25,8 @@ class LINKED_LIST:
 			self.head = newData
 		else:
 			self.head = NODE(data)
+		
+		self.length += 1
 
 	def replaceElementAtIndex(self, data, index:int=-1):
 		if index == -1:
@@ -46,7 +49,8 @@ class LINKED_LIST:
 		target.prev.next = new
 		new.next = target
 		target.prev = new
-
+		
+		self.length += 1
 
 	def add_tail(self, data):
 		# print("Happens?")
@@ -56,47 +60,79 @@ class LINKED_LIST:
 			lastElement.next = NODE(data, lastElement)
 		else:
 			self.head = NODE(data)
+		
+		self.length += 1
 	
 	##Removes and returns popped element from the list
 	def popElement(self, index:int=-1):
-		#Pops last element in the list
-		try:
+		"""Removes and Returns an element at the given index, Default is end of list"""
+		if not self.isEmpty():
+			#Pops last element in the list
 			if index == -1:
+				##Pops head if that's the only element
 				if self.findLastElement() == self.head:
-					self.popElement(0)
-					raise AttributeError("IGNORE")
-				
+					oldHead = self.head
+					self.head = None
+					self.length = 0
+					return oldHead
+
+				##Pops last element in list
 				lastElement = self.findLastElement()
 				lastElement.prev.next = None
+				self.length -= 1
 				return lastElement
 			elif index == 0:
+				##Pops head of list
 				oldHead = self.head
 				self.head = self.head.next
+				self.length -= 1
 				return oldHead
 			else:
+				##Pops element at a given index
 				target = self.findElementAtIndex(index)
 				target.prev.next = target.next
+				self.length -= 1
 				return target
-		except AttributeError as E:
-			# print(f"Error #LINKED_LIST.popELement({index})\n>> {E} <<\n")
-			return None
+	
+		return None
 
-	def findElementsInRange(self, start:int, end:int=-1):
+	def findElementsInRange(self, start:int=0, end:int=-1, step:int=1):
+		"""Returns a linked list of the elements specified in range(start, end) end is inclusive"""
+		##By Default, iterate to end of list
+		if end == -1:
+			end = self.length-1
+
 		try:
-			if start < 0:
+			if start < 0 or start > self.length-1:
 				raise IndexError(f"Start index out of range: {start}")
-			elif end > self.getListLength():
+			elif end < 0 or end > self.length-1:
 				raise IndexError(f"End index out of range: {end}")
-			elif end == -1:
-				end = self.getListLength()
+			elif step != 1 and step != -1:
+				raise IndexError(f"Incorrect Step size: {step}\nMust be -1 or 1")
 
 			newList = LINKED_LIST()
 			curr = self.findElementAtIndex(start)
-			newList.head = curr
-			while curr != self.findElementAtIndex(end):
+
+			##Determins if the system is looping front to back or back to front.
+			##Recursion?
+			if step == 1:
+				myBool = curr != self.findElementAtIndex(end).next
+			else:
+				myBool = curr != self.findElementAtIndex(end).prev
+
+			while myBool:
+				if curr == None:
+					break
+
 				newList.add_tail(curr.data)
-				curr = curr.next
-			
+
+				if step == 1:
+					curr = curr.next
+					myBool = curr != self.findElementAtIndex(end).next
+				elif step == -1:
+					curr = curr.prev
+					myBool = curr != self.findElementAtIndex(end).prev
+
 			return newList
 			
 		except IndexError as E:
@@ -128,14 +164,11 @@ class LINKED_LIST:
 			return curr
 		except AttributeError as E:
 			return self.head
-	
-	def getListLength(self):
-		curr = self.head
-		count = 0
-		while curr != None:
-			count += 1
-			curr = curr.next
-		return count
+
+	def isEmpty(self):
+		if self.head == None:
+			return True
+		return False
 
 	def printList(self):
 		curr = self.head
@@ -147,10 +180,13 @@ class LINKED_LIST:
 ##Used for Testing Linked_List Features
 # test = LINKED_LIST()
 
+# test.add_head("END")
 # test.add_head(10)
 # test.add_head(5)
 # test.add_head(39)
 # test.add_head(23)
+# test.add_head(40)
+# test.add_head("Start")
 
 # print("Original")
 # test.printList()
@@ -159,6 +195,9 @@ class LINKED_LIST:
 # # print(test.popElement().data)
 # print(test.popElement(0).data)
 # test.insertElementAtIndex("new", 2)
+# myRange =  test.findElementsInRange(test.length-1, 3, step=-1)
+# print("myRange: ")
+# myRange.printList()
 
 # print("Post-Edits")
 # test.printList()

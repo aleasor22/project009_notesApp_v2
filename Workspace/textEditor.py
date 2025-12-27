@@ -59,10 +59,6 @@ class STRING_EDITOR:
 					print("Wrap possible")
 			else:
 				self._toWrap = False
-		
-		##Updates self._currentLine to the length  of the .__contentBreakdown list.
-		# self._currentLine = len(self.__contentBreakdown)-1 #NOTE: Is this needed?
-		
 
 	def longestLine(self):
 		try:
@@ -86,14 +82,23 @@ class STRING_EDITOR:
 		wordList = LINKED_LIST()
 		currWord = ""
 		while curr != None:
-			if curr.data == " ":
-				wordList.add_tail(currWord)
-				currWord = ""
+			if curr.data.isspace():
+				if currWord != "":
+					wordList.add_tail(currWord)
+					currWord = ""
+				else: ##skips white space.
+					currWord = ""
 				curr = curr.next
 				continue
+			if curr.next == None:
+				currWord += curr.data
+				wordList.add_tail(currWord)
+				curr = curr.next
+				continue
+
 			currWord += curr.data
 			curr = curr.next
-
+		wordList.printList()
 		return wordList
 
 	def stringBuilder(self, string:LINKED_LIST):
@@ -105,16 +110,28 @@ class STRING_EDITOR:
 		return line
 
 	##Setters/Getters
-	def set_contents(self, content):
+	def set_contents(self, content:str):
 		self.__contents = content
+	
+	def set_contentBreakdown(self, breakdown:LINKED_LIST):
+		self.__contentBreakdown = breakdown
+		self._currentLine = len(breakdown)-1
 
-	def add_contentToBreakdown(self, data):
+	def add_contentToBreakdown(self, data=None):
 		self.__contentBreakdown.append(LINKED_LIST())
-		self.__contentBreakdown[-1].add_head(data)
+
+		if data != None: ##Adds data if something was passed through
+			self.__contentBreakdown[-1].add_head(data)
+		
 		self._currentLine = len(self.__contentBreakdown)-1
 
 	def get_contents(self):
 		return self.__contents
+	
+	def isEmpty_contentBreakdown(self):
+		if self.__contentBreakdown == []:
+			return True
+		return False
 	
 	def get_contentBreakdown(self, index:int=-1):
 		try:
@@ -213,8 +230,7 @@ class TEXT_EDITOR(STRING_EDITOR):
 		finally:
 			## The last thing I want to do whenever a key is pressed.
 			# print(f"Key Pressed: {key}") ##Used for  Debug
-			if self._textCanvasID != None:
-				self.__root.itemconfigure(self._textCanvasID, text=self.writeToContents())
+			self.updateText()
 			self.wrapWord()
 
 	def released(self, key):
@@ -231,7 +247,13 @@ class TEXT_EDITOR(STRING_EDITOR):
 		finally:
 			##This logic happens no mater the above results
 			pass
-	
+
+	def updateText(self):
+		if self._textCanvasID != None:
+			self.__root.itemconfigure(self._textCanvasID, text=self.writeToContents())
+		else:
+			print("Do I want to create text here?")
+
 	##Start/Stop Keyboard Listener
 	def start_keyboard(self):
 		"""Starts associated keyboard.listener thread"""

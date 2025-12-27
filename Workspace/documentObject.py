@@ -160,8 +160,8 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 		dataFromFile = self.readFile()
 
 		##Sets Title.
-		self._contents = dataFromFile.head.data
-		self.__canvasObject.itemconfigure(self._textCanvasID, text=self._contents)
+		self.set_contents(dataFromFile.head.data)
+		self.__canvasObject.itemconfigure(self._textCanvasID, text=self.get_contents())
 		
 		##Sets Sticky Notes
 		curr = dataFromFile.head.next
