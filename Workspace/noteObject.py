@@ -13,7 +13,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		TEXT_EDITOR.__init__(self, root, ID)
 		self.__root = root ##Canvas Object that notes will be written to
 		self.myID = ID
-		self.active = False
+		self.active = False ##The given note is active.
 		self.toBeDeleted  = False
 		self._activeError = False
 
@@ -56,7 +56,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 	def autoChangeWidth(self):
 		##If self.lockBoxSize is True. Then, Prevent any changes to box width
-		if self.isListening and self._activeKeyPress and not self.lockBoxSize and self.minBoxSize < (self.myBbox[2]-self.myBbox[0]):
+		if self.isListening and self.activeKeyPress and not self.lockBoxSize and self.minBoxSize < (self.myBbox[2]-self.myBbox[0]):
 			##Remove old Canvas ID
 			self.__root.delete(self.__boxCanvasID)
 			self.__root.delete(self.__moveCanvasID)
@@ -73,7 +73,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 
 	def autoChangeHeight(self):
-		if (self.isListening and self._activeKeyPress) or self.activeWidthChange:
+		if (self.isListening and self.activeKeyPress) or self.activeWidthChange:
 			##Remove old Canvas ID
 			self.__root.delete(self.__boxCanvasID)
 			self.__root.delete(self.__moveCanvasID)
@@ -91,69 +91,92 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
-	def findLastWord(self, lineContents:LINKED_LIST):
-		words = self.wordBuilder(lineContents)
-		word = words.findLastElement().data
-		sendNext = LINKED_LIST()
-		if words.length > 1 and word != None:
-			print(f"Last Word: {word}")
-			print(f"Last Word length: {len(word)}")
-			
-			curr = lineContents.findLastElement()
-			if curr.data == "\n": ##if last element is "\n" ignore it and remove it from list
-				lineContents.popElement()
-				curr = curr.prev
-				
-			stopElement = lineContents.findElementAtIndex(lineContents.length-len(word))
-			if stopElement != None:
-				print("Popped Elements: ", end="")
-				while curr != stopElement.prev:
-					sendNext.add_head(lineContents.popElement().data)
-					curr = curr.prev
-				sendNext.printList()
-				# print(" :END")
-		
-		if sendNext.isEmpty():
-			return None
-		return sendNext
-	
-	def wrapTextLive(self, contents:list, currLine:int):
+	def wrapTextSmallerLive(self, contents:list, currLine:int):
 		try:
 			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
 		except IndexError as E:
-			# print(f"Error @STICKY_NOTE.wrapTextLive() \n>> {E} <<\n")
-			return
+			if currLine == 0 and contents == []:
+				return
+			elif currLine > len(contents):
+				print(f"IndexError @STICKY_NOTE.wrapTextSmallerLive() \n>> Index:{currLine} > {len(contents)}:Length of List <<\n")
+			return			
 
-		if  textLength > self._wrapLength:
+		if textLength > self._wrapLength:
 			##If currLine+1 doesn't exist, create it
 			if len(contents) == currLine+1:
 				self.add_contentToBreakdown() ##Creates new line
 				contents = self.get_contentBreakdown() ##Updates current contents variable
+			
+			newLine = LINKED_LIST()
+			curr = contents[currLine].findLastElement()
+			if curr != None and self.wordBuilder(contents[currLine]).length > 1:
+				##pops the last element if it's a white space
+				if curr.data.isspace():
+					print(f"Popping Whitespaces {curr.data}")
+					contents[currLine].popElement() 
+					curr = curr.prev
 
-			lastWordList = self.findLastWord(contents[currLine]) ##Returns Linked List 
-			if lastWordList != None:
-				contents[currLine+1].add_head(" ") ##adds an ending whitespace to next line, for each word to be appended
-				contents[currLine].popElement() ##Removes tailing whitespaceof current line before wrapping.
-				
-				##Adds wrapped word to the start of the next word, loops through each character.
-				while not lastWordList.isEmpty():
-					contents[currLine+1].add_head(lastWordList.popElement().data)
+				# print(f"Current: {lineContents.popElement()}")
+				##Loops from end of list till whitespace
+				while not curr.data.isspace():
+					##sends end characters to start of next line
+					newLine.add_head(contents[currLine].popElement().data)
+					curr = curr.prev
 
-				contents[currLine].add_tail("\n")
-				if contents[currLine+1].findLastElement().data.isspace():
-					contents[currLine+1].popElement() ##Removes tailing whitespace of next line
+			# if newLine != None: ##The loop should get skipped anyway if it's empty
+			while not newLine.isEmpty():
+				contents[currLine+1].add_head(newLine.popElement().data)
+			contents[currLine+1].add_tail(" ")
+			##Updates text object
+			self.set_contentBreakdown(contents)
+			self.updateText()
 
-				# print(f"is lastWrodList empty? {"yes" if lastWordList.isEmpty() else "No"}")
-				contents[currLine].printList()	##DEBUGGING
-				contents[currLine+1].printList()##DEBUGGING
+		self.wrapTextSmallerLive(contents, currLine+1)
+	
+	def wrapTextLargerLive(self, contents:list, currLine:int):
+		try:
+			if currLine >= len(contents):
+				raise IndexError(f"Index:{currLine} >= {len(contents)}:Length of List")
+			if currLine == 0:
+				raise IndexError(f"Ingex:{currLine} - No Wrapping with line 0")
+			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
+		except IndexError as E:
+			print(f"IndexError @STICKY_NOTE.wrapTextLargerLive(index={currLine}) \n>> {E} <<\n")
+			return
+
+		if textLength < self._wrapLength:
+			curr = contents[currLine].head
+			if curr != None:
+				print(f"Starting Char: {curr.data}")
+				contents[currLine-1].add_tail(" ")
+				if curr.data.isspace():
+					contents[currLine].popElement(0)
+					curr = curr.next
+					if curr == None:
+						return	
+
+				while not curr.data.isspace():
+					##Iterates through characters till it hits a white space
+					# print(f"{curr.data}", end="")
+					contents[currLine-1].add_tail(contents[currLine].popElement(0).data)
+					
+					##If this line becomes empty, remove it from list
+					if contents[currLine].isEmpty():
+						contents.pop(currLine)
+
+					##Steps to the next element
+					curr = curr.next
+
+					if curr == None:
+						##Exits loop if True
+						break
+				# print(" :END of First Word")
 				
 				##Updates text object
 				self.set_contentBreakdown(contents)
-				# self.autoChangeHeight()
 				self.updateText()
-
-		self.wrapTextLive(contents, currLine+1)
-
+		
+		self.wrapTextLargerLive(self.get_contentBreakdown(), currLine-1)
 	
 	def removeEmptyNote(self):
 		# print(f"{self.myID} is active? {self.active}")
@@ -197,11 +220,18 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.__root.delete(self.__moveCanvasID)
 		
 		##Changes box size and wrap length
+		growingBox = self.myBbox[2]<mousePos[0]
+		# print("Grow" if growingBox else "Shrink") ##Debug.
 		if self.minBoxSize < (mousePos[0]-self.myBbox[0]):
 			self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
 			self._wrapLength = mousePos[0] - self.myBbox[0] - self.box_offset_x
 			if not self.isEmpty_contentBreakdown(): #Start based on longest line or start from top to bottom
-				self.wrapTextLive(self.get_contentBreakdown(), 0) #Start text wrapping with the first line of text.
+				if growingBox:
+					##Growing box
+					self.wrapTextLargerLive(self.get_contentBreakdown(), len(self.get_contentBreakdown())-1)
+				else:
+					##Shrinking box.
+					self.wrapTextSmallerLive(self.get_contentBreakdown(), 0) #Start text wrapping with the first line of text.
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
@@ -227,7 +257,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 			##Create New Canvas Widgets
 			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
 			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self._contents, anchor="nw", font=self.get_myFontPackage())
+			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self.get_contents(), anchor="nw", font=self.get_myFontPackage())
 
 	def loadFromFile(self, currentItem):
 		print("Re-impliment at a later date")

@@ -17,7 +17,8 @@ class STRING_EDITOR:
 		self._currentLine 	= 0		 ##Holds the currently active line.
 		self._textCanvasID  = None
 		self._wrapLength	= 200
-		self._toWrap		= False
+		self.toWrap		= False
+		self.finishedWord = False
 
 		##Font Information:
 		self._myFont		= tkFont.nametofont("TkDefaultFont")
@@ -29,6 +30,7 @@ class STRING_EDITOR:
 		self.__contents = ""
 		for line in self.__contentBreakdown:
 			self.__contents += self.stringBuilder(line)
+			self.__contents += "\n"
 			# print("Contents:", self.__contents)
 		
 		return self.__contents
@@ -37,7 +39,8 @@ class STRING_EDITOR:
 		if self.__contentBreakdown == [] or char == "\n":
 			##Create new linked list, if ._contentBreakdown is empty or a newline is created.
 			self.__contentBreakdown.append(LINKED_LIST())
-			self.__contentBreakdown[self._currentLine].add_tail(char)
+			if char != "\n":
+				self.__contentBreakdown[self._currentLine].add_tail(char)
 			self._currentLine = len(self.__contentBreakdown)-1
 			# print(f"char passed: >> {char} <<")
 		else:
@@ -55,10 +58,10 @@ class STRING_EDITOR:
 			currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._currentLine]))
 			if not self._backSpaceActive:
 				if self._wrapLength < currentLength:
-					self._toWrap = True
+					self.toWrap = True
 					print("Wrap possible")
-			else:
-				self._toWrap = False
+			# else:
+			# 	self.toWrap = False
 
 	def longestLine(self):
 		try:
@@ -101,14 +104,24 @@ class STRING_EDITOR:
 		wordList.printList()
 		return wordList
 
-	def stringBuilder(self, string:LINKED_LIST):
-		curr = string.head
-		line = ""
-		while curr != None:
-			line += curr.data
-			curr = curr.next
-		return line
-
+	def stringBuilder(self, list:LINKED_LIST):
+		try:
+			curr = list.head
+			line = ""
+			while curr != None:
+				# print("Data:", curr.data) ##For Debugging
+				line += curr.data
+				curr = curr.next
+			return line
+		except TypeError as E:
+			print(f"TypeError @STRING_EDITOR.stringBuilder()\n>> {E} <<\n>> curr.data == NODE obj.\n")
+			print(f"Returns {line}")
+			return line
+		except AttributeError as E:
+			print(f"AttributeError @STRING_EDITOR.stringBuilder()\n >> {E} <<")
+			print(f"Returns {line}")
+			return line
+	
 	##Setters/Getters
 	def set_contents(self, content:str):
 		self.__contents = content
@@ -180,7 +193,8 @@ class TEXT_EDITOR(STRING_EDITOR):
 		self._isHotKeyPressed = False
 		self._backSpaceActive = False
 		self._enterKeyActive  = False
-		self._activeKeyPress  = False
+		self.activeKeyPress	  = False
+		self.spaceActive	  = False
 		self._isCapsLocked	  = False
 
 	##Actions when listening to the Keyboard.
@@ -188,14 +202,15 @@ class TEXT_EDITOR(STRING_EDITOR):
 		try:
 			# print(f"Key Pressed: {key.char}") ##Used for Debug
 			if not self._isHotKeyPressed:
-				self._activeKeyPress = True
+				self.activeKeyPress = True
+				self.finishedWord = False
 				if self._isCapsLocked:
 					self.appendContentBreakdown(key.char.upper())
 				else:
 					self.appendContentBreakdown(key.char)
 		except AttributeError:
 			# print(f"Key Pressed: {key}") ##Used for Debug
-			self._activeKeyPress = True
+			self.activeKeyPress = True
 			if key in self._hotKeyList:
 				# print(f"Ignore this: {key}")
 				self._isHotKeyPressed = True
@@ -205,12 +220,9 @@ class TEXT_EDITOR(STRING_EDITOR):
 				self.appendContentBreakdown("\n")
 				pass
 			if key == key.space:
-				##When "Space" is pressed
-				if self._toWrap:
-					self.get_contentBreakdown(self._currentLine).printList()
-					self._toWrap = False
-					self.appendContentBreakdown("\n")
-				else:
+				self.spaceActive = True
+				self.finishedWord = True
+				if not self.toWrap:
 					self.appendContentBreakdown(" ")
 			if key == key.tab:
 				##When "Tab" is pressed
@@ -235,11 +247,13 @@ class TEXT_EDITOR(STRING_EDITOR):
 
 	def released(self, key):
 		try:
-			self._activeKeyPress = False
+			self.activeKeyPress = False
 			temp = key.char
 		except AttributeError:
 			if key in self._hotKeyList:
 				self._isHotKeyPressed = False
+			if key == key.space:
+				self.spaceActive = False
 			if key == key.backspace:
 				self._backSpaceActive = False
 			if key == key.enter:

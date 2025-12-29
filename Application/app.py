@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.73-4]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.73-5]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
@@ -21,6 +21,7 @@ class APP(MENU):
 		self._mainApp.geometry(f"{width}x{height}")
 
 		##Public Variables
+		self.startUpComplete = False
 		self.shutdown = False
 
 		##Workspace Declarations
@@ -75,6 +76,9 @@ class APP(MENU):
 		##Filling out Layouts post file read.
 		self.__docLayout.updateTitle(self.__workspace["Canvas-#0"].lastTitle, self.__workspace["Canvas-#0"].get_title())
 
+		##Bulk of Startup Completed
+		self.startUpComplete = True
+
 		##Renders Window to Screen
 		self._mainApp.bind("<Destroy>", self.onClose)
 		self._mainApp.mainloop()
@@ -101,12 +105,21 @@ class APP(MENU):
 					value.lastTitle = activeTitle
 	
 	def stickyNoteUpdates(self):
-		workspace = self.get_workspace()
-		if workspace != None:
-			for sticky_note in workspace.existingNotes.values():
-				sticky_note.autoChangeWidth()
-				sticky_note.autoChangeHeight()
-				sticky_note.removeEmptyNote()
+		try:
+			workspace = self.get_workspace() ##Returns active workspace
+			sticky_note = workspace.get_stickyNote() ##Returns active sticky note
+		except AttributeError as E:
+			# print(f"AttributeError @APP.stickyNoteUpdates\n>> {E} <<")
+			return
+
+		sticky_note.autoChangeWidth()
+		sticky_note.autoChangeHeight()
+		sticky_note.removeEmptyNote()
+		
+		# print(f"{sticky_note.toWrap} and {sticky_note.activeKeyPress}")
+		if sticky_note.toWrap and sticky_note.finishedWord:
+			sticky_note.wrapTextSmallerLive(sticky_note.get_contentBreakdown(), 0)
+			sticky_note.toWrap = False
 	
 	def get_refreshRate(self):
 		return self.__refreshRate
@@ -119,4 +132,4 @@ class APP(MENU):
 		for value in self.__workspace.values():
 			if value.activeDoc:
 				return value
-		return None
+		raise AttributeError("No Active Workspaces")

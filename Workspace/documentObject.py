@@ -192,6 +192,12 @@ class DOCUMENT(TEXT_EDITOR, FILES):
 	def get_canvasObj(self):
 		return self.__canvasObject
 	
+	def get_stickyNote(self):
+		for value in self.existingNotes.values():
+			if value.active:
+				return value
+		raise AttributeError("No Active Sticky Notes")
+
 	def set_title(self, title:str):
 		self._contents = title
 		self.__canvasObject.itemconfigure(self._textCanvasID, text=title)
