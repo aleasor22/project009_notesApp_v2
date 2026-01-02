@@ -16,6 +16,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.active = False ##The given note is active.
 		self.toBeDeleted  = False
 		self._activeError = False
+		self.growing	  = False
 
 		self.text_offset = 5
 
@@ -110,23 +111,23 @@ class STICKY_NOTE(TEXT_EDITOR):
 			newLine = LINKED_LIST()
 			curr = contents[currLine].findLastElement()
 			if curr != None and self.wordBuilder(contents[currLine]).length > 1:
-				##pops the last element if it's a white space
-				if curr.data.isspace():
+				##Removes tailing whitespaces
+				while curr.data.isspace():
 					print(f"Popping Whitespaces {curr.data}")
 					contents[currLine].popElement() 
 					curr = curr.prev
-
-				# print(f"Current: {lineContents.popElement()}")
+					if curr == None: ##Exits Method if current == None
+						return	
+	
 				##Loops from end of list till whitespace
+				contents[currLine+1].add_head(" ")
 				while not curr.data.isspace():
 					##sends end characters to start of next line
-					newLine.add_head(contents[currLine].popElement().data)
+					contents[currLine+1].add_head(contents[currLine].popElement().data)
 					curr = curr.prev
 
-			# if newLine != None: ##The loop should get skipped anyway if it's empty
-			while not newLine.isEmpty():
-				contents[currLine+1].add_head(newLine.popElement().data)
 			contents[currLine+1].add_tail(" ")
+
 			##Updates text object
 			self.set_contentBreakdown(contents)
 			self.updateText()
@@ -136,27 +137,37 @@ class STICKY_NOTE(TEXT_EDITOR):
 	def wrapTextLargerLive(self, contents:list, currLine:int):
 		try:
 			if currLine >= len(contents):
-				raise IndexError(f"Index:{currLine} >= {len(contents)}:Length of List")
+				raise IndexError(f"Index={currLine} >= {len(contents)}:Length of List")
 			if currLine == 0:
-				raise IndexError(f"Ingex:{currLine} - No Wrapping with line 0")
-			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
+				self.growing = False
+				return
+				# raise IndexError(f"Ingex={currLine} - No Wrapping with line 0")
+			textLength = self._myFont.measure(self.stringBuilder(contents[currLine-1]))
 		except IndexError as E:
 			print(f"IndexError @STICKY_NOTE.wrapTextLargerLive(index={currLine}) \n>> {E} <<\n")
+			self.growing = False
 			return
 
 		if textLength < self._wrapLength:
+			self.growing = True
 			curr = contents[currLine].head
 			if curr != None:
 				print(f"Starting Char: {curr.data}")
 				contents[currLine-1].add_tail(" ")
-				if curr.data.isspace():
-					contents[currLine].popElement(0)
+				while curr.data.isspace():
+					print(f"Popping Whitespaces {curr.data}")
+					contents[currLine].popElement(0) 
 					curr = curr.next
 					if curr == None:
+						self.growing = False
 						return	
 
+				lastElementIndex = contents[currLine-1].findElementAtIndex(contents[currLine-1].length-1).data
 				while not curr.data.isspace():
 					##Iterates through characters till it hits a white space
+					if curr.data == lastElementIndex:
+						contents[currLine-1].add_tail(" ")
+						print(f"prev line - last element: {contents[currLine-1].findElementAtIndex(contents[currLine-1].length-1).data}")
 					# print(f"{curr.data}", end="")
 					contents[currLine-1].add_tail(contents[currLine].popElement(0).data)
 					
@@ -225,13 +236,13 @@ class STICKY_NOTE(TEXT_EDITOR):
 		if self.minBoxSize < (mousePos[0]-self.myBbox[0]):
 			self.myBbox = [self.myBbox[0], self.myBbox[1], mousePos[0], self.myBbox[3]]
 			self._wrapLength = mousePos[0] - self.myBbox[0] - self.box_offset_x
-			if not self.isEmpty_contentBreakdown(): #Start based on longest line or start from top to bottom
-				if growingBox:
-					##Growing box
-					self.wrapTextLargerLive(self.get_contentBreakdown(), len(self.get_contentBreakdown())-1)
-				else:
-					##Shrinking box.
-					self.wrapTextSmallerLive(self.get_contentBreakdown(), 0) #Start text wrapping with the first line of text.
+			# if not self.isEmpty_contentBreakdown(): #Start based on longest line or start from top to bottom
+			# 	if growingBox:
+			# 		##Growing box
+			# 		self.wrapTextLargerLive(self.get_contentBreakdown(), len(self.get_contentBreakdown())-1)
+			# 	else:
+			# 		##Shrinking box.
+			# 		self.wrapTextSmallerLive(self.get_contentBreakdown(), 0) #Start text wrapping with the first line of text.
 
 		##Create New Canvas Widgets
 		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)

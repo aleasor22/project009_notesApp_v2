@@ -21,23 +21,58 @@ class LINKED_LIST:
 		if self.head != None:
 			newData = NODE(data)
 			newData.next = self.head
-			newData.next.prev = newData ##The old Head will have a .prev equal to new head.
+			self.head.prev = newData ##The old Head will have a .prev equal to new head.
 			self.head = newData
 		else:
 			self.head = NODE(data)
 		
+		print("add_head - Prev =", self.head.prev)
+		self.length += 1
+
+	def add_tail(self, data):
+		# print("Happens?")
+		if self.head != None:
+			# print(self.findLastElement().data, "END")
+			lastElement = self.findLastElement()
+			lastElement.next = NODE(data, lastElement)
+		else:
+			self.head = NODE(data)
+		
+		print("add_tail - Prev =", self.findLastElement().prev)
 		self.length += 1
 
 	def replaceElementAtIndex(self, data, index:int=-1):
+		"""Replaces the element at a given index. If no  index is given, replace the last element"""
+		#Original
+		## prev -> target -> next
+
+		#Replaced
+		## prev -> newItem -> target.next
+
 		if index == -1:
-			self.add_head(data)
-		
-		new = NODE(data)
-		target = self.findElementAtIndex(index)
-		print(f"Target: {target.data}")
-		target.prev.next = new
-		new.next = target.next
-		target.next.prev = new
+			target = self.findLastElement()
+			if target == self.head:
+				self.head = NODE(data, prev=target.prev)
+				return
+			
+			newItem = NODE(data, prev=target.prev)
+			target.prev.next = newItem ##Makes the previous element point to newItem
+			newItem.next = target.next ##Makes the newItem point to old elements next point
+			return
+		else:
+			target = self.findElementAtIndex(index)
+			if index == self.length:
+				raise IndexError(f"Can't be last element")
+			if target == self.head:
+				self.head = NODE(data, prev=target.prev)
+				return
+
+		newItem = NODE(data, prev=target.prev)
+		print(f"Target: >>{target.data}<<")
+		target.prev.next = newItem ##Makes the previous element point to newItem
+		newItem.next = target.next ##Makes the newItem point to old elements next point
+		target.next.prev = newItem ##Updates the next elements previous element to newItem
+	
 	
 	def insertElementAtIndex(self, data, index:int=-1):
 		if index == -1:
@@ -52,17 +87,6 @@ class LINKED_LIST:
 		
 		self.length += 1
 
-	def add_tail(self, data):
-		# print("Happens?")
-		if self.head != None:
-			# print(self.findLastElement().data, "END")
-			lastElement = self.findLastElement()
-			lastElement.next = NODE(data, lastElement)
-		else:
-			self.head = NODE(data)
-		
-		self.length += 1
-	
 	##Removes and returns popped element from the list
 	def popElement(self, index:int=-1):
 		"""Removes and Returns an element at the given index, Default is end of list"""
@@ -145,6 +169,10 @@ class LINKED_LIST:
 	def findElementAtIndex(self, index:int=-1):
 		if index == -1:
 			return self.findLastElement()
+		elif index >= self.length:
+			raise IndexError(f"IndexError:  Index of '{index}' is out of Range\n@LINKED_LIST.findElementAtIndex")
+		elif self.isEmpty():
+			raise IndexError(f"IndexError: List is Empty\n@LINKED_LIST.findElementAtIndex")
 
 		curr = self.head
 		elementCount = 0
@@ -158,6 +186,8 @@ class LINKED_LIST:
 		
 	def findLastElement(self):
 		try:
+			if self.isEmpty():
+				raise IndexError(f"IndexError: List is Empty\n@LINKED_LIST.findElementAtIndex")
 			curr = self.head
 			while curr.next != None:
 				curr = curr.next
@@ -173,7 +203,10 @@ class LINKED_LIST:
 	def printList(self):
 		curr = self.head
 		while curr != None:
-			print(curr.data, end=" -> ")
+			if curr.next == None:
+				print(curr.data, end=" :END")
+			else:
+				print(curr.data, end="->")
 			curr = curr.next
 		print()
 

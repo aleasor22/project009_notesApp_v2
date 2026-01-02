@@ -13,12 +13,14 @@ class STRING_EDITOR:
 	def __init__(self, fontSize:int=11):
 		##String Information:
 		self.__contents 	= ""
-		self.__contentBreakdown = [] ##Houses linked lists of each line.
-		self._currentLine 	= 0		 ##Holds the currently active line.
+		self.__contentBreakdown = [LINKED_LIST()] ##Houses linked lists of each line.
+		self._lastLineIndex	= 0		 ##Holds the currently active line.
 		self._textCanvasID  = None
 		self._wrapLength	= 200
-		self.toWrap		= False
-		self.finishedWord = False
+		self.toWrap			= False
+		self.__activeWord	= False
+		self.__currWord		= ""
+		self.finishedWord	= False
 
 		##Font Information:
 		self._myFont		= tkFont.nametofont("TkDefaultFont")
@@ -36,32 +38,54 @@ class STRING_EDITOR:
 		return self.__contents
 
 	def appendContentBreakdown(self, char:str):
-		if self.__contentBreakdown == [] or char == "\n":
-			##Create new linked list, if ._contentBreakdown is empty or a newline is created.
-			self.__contentBreakdown.append(LINKED_LIST())
-			if char != "\n":
-				self.__contentBreakdown[self._currentLine].add_tail(char)
-			self._currentLine = len(self.__contentBreakdown)-1
-			# print(f"char passed: >> {char} <<")
-		else:
-			self.__contentBreakdown[self._currentLine].add_tail(char)
+		print(f"Char: >>{char}<<")
+		self.__currWord += char
+		print(f"Text: >>{self.__currWord}<<")
+		
+		if self.__contentBreakdown[self._lastLineIndex].isEmpty():
+			self.__contentBreakdown[self._lastLineIndex].add_head(self.__currWord)
+		elif char == " " and not self.__contentBreakdown[self._lastLineIndex].isEmpty():
+			self.__contentBreakdown[self._lastLineIndex].replaceElementAtIndex(self.__currWord)
+			self.__contentBreakdown[self._lastLineIndex].add_tail("")
+			self.__currWord = ""
+		elif not self.__contentBreakdown[self._lastLineIndex].isEmpty():
+			self.__contentBreakdown[self._lastLineIndex].replaceElementAtIndex(self.__currWord)
+
+		self.__contentBreakdown[self._lastLineIndex].printList()
+		print("Line:", self.stringBuilder(self.__contentBreakdown[self._lastLineIndex]))
 
 	def popContentBreakdown(self, index:int=-1):
-		if self.__contentBreakdown[self._currentLine].head == None and self._currentLine > 0:
-			print("head empty")
-			self.__contentBreakdown.pop()
-			self._currentLine = len(self.__contentBreakdown)-1
-		self.__contentBreakdown[len(self.__contentBreakdown)-1].popElement()
-	
+		try:
+			lastItem = self.__contentBreakdown[self._lastLineIndex].findLastElement()
+		except IndexError as E:
+			print(E)
+			return
+
+		if lastItem.data == " ":
+			self.__contentBreakdown[self._lastLineIndex].popElement()
+		else:
+			newWord = ""
+			for i in range(len(lastItem.data)):
+				print(lastItem.data[i])
+				newWord += lastItem.data[i]
+			self.__contentBreakdown[self._lastLineIndex].replaceElementAtIndex(newWord)
+			
+		self.__contentBreakdown[self._lastLineIndex].printList()
+		pass
+		#OLD
+		# if self.__contentBreakdown[self._lastLineIndex].head == None and self._lastLineIndex > 0:
+		# 	print("head empty")
+		# 	self.__contentBreakdown.pop()
+		# 	self._lastLineIndex = len(self.__contentBreakdown)-1
+		# self.__contentBreakdown[len(self.__contentBreakdown)-1].popElement()
+
 	def wrapWord(self, ):
 		if len(self.__contentBreakdown) > 0:
-			currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._currentLine]))
+			currentLength = self._myFont.measure(self.stringBuilder(self.__contentBreakdown[self._lastLineIndex]))
 			if not self._backSpaceActive:
 				if self._wrapLength < currentLength:
 					self.toWrap = True
 					print("Wrap possible")
-			# else:
-			# 	self.toWrap = False
 
 	def longestLine(self):
 		try:
@@ -78,38 +102,13 @@ class STRING_EDITOR:
 		except IndexError as E:
 			print(f"Error @STRING_EDITOR.longetsLine()\n>> {E} <<\n")
 			return ""
-	
-	def wordBuilder(self, string:LINKED_LIST):
-		curr = string.head
-		# print(curr.data)
-		wordList = LINKED_LIST()
-		currWord = ""
-		while curr != None:
-			if curr.data.isspace():
-				if currWord != "":
-					wordList.add_tail(currWord)
-					currWord = ""
-				else: ##skips white space.
-					currWord = ""
-				curr = curr.next
-				continue
-			if curr.next == None:
-				currWord += curr.data
-				wordList.add_tail(currWord)
-				curr = curr.next
-				continue
-
-			currWord += curr.data
-			curr = curr.next
-		wordList.printList()
-		return wordList
 
 	def stringBuilder(self, list:LINKED_LIST):
 		try:
 			curr = list.head
 			line = ""
 			while curr != None:
-				# print("Data:", curr.data) ##For Debugging
+				# print(f"Current: >>{curr.data}<<") ##For Debugging
 				line += curr.data
 				curr = curr.next
 			return line
@@ -128,15 +127,13 @@ class STRING_EDITOR:
 	
 	def set_contentBreakdown(self, breakdown:LINKED_LIST):
 		self.__contentBreakdown = breakdown
-		self._currentLine = len(breakdown)-1
+		self._lastLineIndex = len(breakdown)-1
 
 	def add_contentToBreakdown(self, data=None):
 		self.__contentBreakdown.append(LINKED_LIST())
-
+		self._lastLineIndex = len(self.__contentBreakdown)-1
 		if data != None: ##Adds data if something was passed through
 			self.__contentBreakdown[-1].add_head(data)
-		
-		self._currentLine = len(self.__contentBreakdown)-1
 
 	def get_contents(self):
 		return self.__contents
@@ -217,7 +214,8 @@ class TEXT_EDITOR(STRING_EDITOR):
 			if key == key.enter:
 				##When "Enter" is pressed
 				self._enterKeyActive = True
-				self.appendContentBreakdown("\n")
+				self.add_contentToBreakdown()
+				# self.appendContentBreakdown("\n")
 				pass
 			if key == key.space:
 				self.spaceActive = True
