@@ -92,7 +92,18 @@ class STICKY_NOTE(TEXT_EDITOR):
 			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
 	
 	def wrapTextSmallerLive(self, contents:list, currLine:int):
+		print(f"Contents: [", end="")
+		for items in contents:
+			try:
+				print(f"{items.head.data}, ", end="")
+			except AttributeError:
+				print(f"NoneType, ", end="")
+		print("]")
 		try:
+			##Removes any empty lines of text
+			for index in range(len(contents)):
+				if contents[index].isEmpty():
+					contents.pop(index)
 			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
 		except IndexError as E:
 			if currLine == 0 and contents == []:
@@ -111,10 +122,13 @@ class STICKY_NOTE(TEXT_EDITOR):
 			curr = contents[currLine].findLastElement()
 			if curr != None and self.wordBuilder(contents[currLine]).length > 1:
 				##pops the last element if it's a white space
-				if curr.data.isspace():
+				##Until all tailing whitespaces are removed.
+				while curr.data.isspace():
 					print(f"Popping Whitespaces {curr.data}")
 					contents[currLine].popElement() 
 					curr = curr.prev
+					if curr == None:
+						return
 
 				# print(f"Current: {lineContents.popElement()}")
 				##Loops from end of list till whitespace
@@ -123,25 +137,35 @@ class STICKY_NOTE(TEXT_EDITOR):
 					newLine.add_head(contents[currLine].popElement().data)
 					curr = curr.prev
 
-			# if newLine != None: ##The loop should get skipped anyway if it's empty
+			contents[currLine+1].add_head(" ")
+
+			#If newLine != None: ##The loop should get skipped anyway if it's empty
 			while not newLine.isEmpty():
+				##pops the last element and adds it to the head of the next line.
 				contents[currLine+1].add_head(newLine.popElement().data)
-			contents[currLine+1].add_tail(" ")
+
 			##Updates text object
 			self.set_contentBreakdown(contents)
 			self.updateText()
 
+		##Recursivley calls itself for the next line. 
 		self.wrapTextSmallerLive(contents, currLine+1)
 	
 	def wrapTextLargerLive(self, contents:list, currLine:int):
+		print(contents)
 		try:
+			##Removes any empty lines of text
+			for index in range(len(contents)):
+				if contents[index].isEmpty():
+					contents.pop(index)
+
 			if currLine >= len(contents):
 				raise IndexError(f"Index:{currLine} >= {len(contents)}:Length of List")
 			if currLine == 0:
 				raise IndexError(f"Ingex:{currLine} - No Wrapping with line 0")
 			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
 		except IndexError as E:
-			print(f"IndexError @STICKY_NOTE.wrapTextLargerLive(index={currLine}) \n>> {E} <<\n")
+			print(f"IndexError File @STICKY_NOTE.wrapTextLargerLive(index={currLine}) \n>> {E} <<\n")
 			return
 
 		if textLength < self._wrapLength:
@@ -162,6 +186,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 					
 					##If this line becomes empty, remove it from list
 					if contents[currLine].isEmpty():
+						print("Popping an empty line.")
 						contents.pop(currLine)
 
 					##Steps to the next element

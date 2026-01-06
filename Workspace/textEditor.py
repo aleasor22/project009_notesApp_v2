@@ -114,12 +114,12 @@ class STRING_EDITOR:
 				curr = curr.next
 			return line
 		except TypeError as E:
-			print(f"TypeError @STRING_EDITOR.stringBuilder()\n>> {E} <<\n>> curr.data == NODE obj.\n")
-			print(f"Returns {line}")
+			print(f"TypeError File @STRING_EDITOR.stringBuilder()\n>> {E} <<\n>> curr.data == NODE obj. <<")
+			print(f">> Returns '{line}' <<")
 			return line
 		except AttributeError as E:
-			print(f"AttributeError @STRING_EDITOR.stringBuilder()\n >> {E} <<")
-			print(f"Returns {line}")
+			print(f"AttributeError File @STRING_EDITOR.stringBuilder()\n >> {E} <<")
+			print(f">> Returns '{line}' <<")
 			return line
 	
 	##Setters/Getters
@@ -238,7 +238,7 @@ class TEXT_EDITOR(STRING_EDITOR):
 				elif self._isCapsLocked:
 					self._isCapsLocked = False
 		except IndexError as E:
-			print(f"Caught Error in TEXT_EDITOR.pressed:\n>>{E}\n")
+			print(f"Caught Error in TEXT_EDITOR.pressed:\n>> {E} <<\n")
 		finally:
 			## The last thing I want to do whenever a key is pressed.
 			# print(f"Key Pressed: {key}") ##Used for  Debug

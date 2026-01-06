@@ -8,7 +8,7 @@ from Workspace import DOCUMENT
 ##Running the base application
 class APP(MENU):
 	"""Creates the Base window for this Project"""
-	def __init__(self, width, height, titleString="Notes App [v0.0.73-5]"):
+	def __init__(self, width, height, titleString="Notes App [v0.0.73-5.1]"):
 		MENU.__init__(self)
 		##Private Variables
 		self.__refreshRate = int(1000/60) ##In milliseconds (ms)
