@@ -17,7 +17,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.toBeDeleted  = False
 		self._activeError = False
 
-		self.text_offset = 5
+		self.txtPad = 5
 
 		##Text Box Widget Variables
 		self.activeMove  = False
@@ -25,8 +25,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.activeWidthChange = False
 		self._moveAnchor = []
 		self._textAnchor = []
-		self.__moveCanvasID = None
-		self.__boxCanvasID = None
+		self.__moveContainerID = None
+		self.__textContainerID = None
 		self.myBbox = []		##(x1, y1, x2, y2)
 		self.box_offset_x = 20	##The Box Pad in the x direction
 		self.box_offset_y = 10	##The Box Pad in the y direction
@@ -36,8 +36,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.stepCount = 0
 
 	def deleteCanvasIDs(self):
-		self.__root.delete(self.__boxCanvasID)
-		self.__root.delete(self.__moveCanvasID)
+		self.__root.delete(self.__textContainerID)
+		self.__root.delete(self.__moveContainerID)
 		self.__root.delete(self._textCanvasID)
 		if self.isListening:
 			self.stop_keyboard()
@@ -47,10 +47,11 @@ class STICKY_NOTE(TEXT_EDITOR):
 		# self.coords = (event.x, event.y)
 		
 		##Creates Canvas Widgets 
-		self.__moveCanvasID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
-		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self._textCanvasID = self.__root.create_text(event.x+self.text_offset, event.y+self.text_offset, anchor="nw", font=self.get_myFontPackage())
-		
+		self.__moveContainerID = self.__root.create_rectangle(event.x, self.myBbox[1], self.myBbox[2], event.y)
+		self.__textContainerID  = self.__root.create_rectangle(self.myBbox)
+		self._textCanvasID = self.__root.create_text(event.x+self.txtPad, event.y+self.txtPad, anchor="nw", font=self.get_myFontPackage())
+		self.initCursor((event.x+self.txtPad, event.y+self.txtPad))
+
 		self.active = True
 		self.start_keyboard()
 
@@ -58,8 +59,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		##If self.lockBoxSize is True. Then, Prevent any changes to box width
 		if self.isListening and self.activeKeyPress and not self.lockBoxSize and self.minBoxSize < (self.myBbox[2]-self.myBbox[0]):
 			##Remove old Canvas ID
-			self.__root.delete(self.__boxCanvasID)
-			self.__root.delete(self.__moveCanvasID)
+			self.__root.delete(self.__textContainerID)
+			self.__root.delete(self.__moveContainerID)
 
 			##Adjust box Here
 			defaultWidth = int(self._wrapLength/2)+self.box_offset_x
@@ -69,27 +70,27 @@ class STICKY_NOTE(TEXT_EDITOR):
 				self.changeBBox(2, self.myBbox[0]+self._myFont.measure(self.longestLine())+int(0.25 * defaultWidth))
 
 			##Re-Create top box
-			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
+			self.__moveContainerID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__textContainerID = self.__root.create_rectangle(self.myBbox)
 
 	def autoChangeHeight(self):
 		if (self.isListening and self.activeKeyPress) or self.activeWidthChange:
 			##Remove old Canvas ID
-			self.__root.delete(self.__boxCanvasID)
-			self.__root.delete(self.__moveCanvasID)
+			self.__root.delete(self.__textContainerID)
+			self.__root.delete(self.__moveContainerID)
 
 			##Adjust box Here
 			if self._enterKeyActive:
-				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+2) * self._myFontHeight))
+				self.changeBBox(3, self.myBbox[1]+self.txtPad+((self.get_contentBreakdownLength()+2) * self._myFontHeight))
 			elif len(self.get_contentBreakdown()) == 0:
 				#Prevents the box from strinking when typing text into a blank sticky note
 				pass
 			else:
-				self.changeBBox(3, self.myBbox[1]+self.text_offset+((self.get_contentBreakdownLength()+1) * self._myFontHeight))
+				self.changeBBox(3, self.myBbox[1]+self.txtPad+((self.get_contentBreakdownLength()+1) * self._myFontHeight))
 			
 			##Re-Create top box
-			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self.__boxCanvasID = self.__root.create_rectangle(self.myBbox)
+			self.__moveContainerID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__textContainerID = self.__root.create_rectangle(self.myBbox)
 	
 	def wrapTextSmallerLive(self, contents:list, currLine:int):
 		print(f"Contents: [", end="")
@@ -163,12 +164,13 @@ class STICKY_NOTE(TEXT_EDITOR):
 				raise IndexError(f"Index:{currLine} >= {len(contents)}:Length of List")
 			if currLine == 0:
 				raise IndexError(f"Ingex:{currLine} - No Wrapping with line 0")
-			textLength = self._myFont.measure(self.stringBuilder(contents[currLine]))
+			textLength = self._myFont.measure(self.stringBuilder(contents[currLine-1])) #Length of previous line
 		except IndexError as E:
 			print(f"IndexError File @STICKY_NOTE.wrapTextLargerLive(index={currLine}) \n>> {E} <<\n")
 			return
 
-		if textLength < self._wrapLength:
+		# print(f"Wrap Length: {self._wrapLength} vs Text Line-{currLine}: {textLength}")
+		if textLength < int(self._wrapLength*0.8):
 			curr = contents[currLine].head
 			if curr != None:
 				print(f"Starting Char: {curr.data}")
@@ -229,7 +231,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 
 	def withinSideOfBox(self, pos):
 		##Retruns True if mouse was clicked inside a text box, else returns false
-		if self.myBbox[2]-15 < pos[0] and pos[0] < self.myBbox[2]+5:
+		if self.myBbox[2]-15 < pos[0] and pos[0] < self.myBbox[2]+10:
 			#Mouse Possition on Click is between x1 and x2
 			if self.myBbox[1] < pos[1] and pos[1] < (self.myBbox[3]):
 				# print("Within right side of Box")
@@ -241,8 +243,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self.lockBoxSize = True
 
 		##Removes old Canvas Widgets
-		self.__root.delete(self.__boxCanvasID)
-		self.__root.delete(self.__moveCanvasID)
+		self.__root.delete(self.__textContainerID)
+		self.__root.delete(self.__moveContainerID)
 		
 		##Changes box size and wrap length
 		growingBox = self.myBbox[2]<mousePos[0]
@@ -259,8 +261,8 @@ class STICKY_NOTE(TEXT_EDITOR):
 					self.wrapTextSmallerLive(self.get_contentBreakdown(), 0) #Start text wrapping with the first line of text.
 
 		##Create New Canvas Widgets
-		self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-		self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+		self.__textContainerID  = self.__root.create_rectangle(self.myBbox)
+		self.__moveContainerID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 		
 		if not self.activeWidthChange:
 			self.activeWidthChange = True
@@ -269,19 +271,19 @@ class STICKY_NOTE(TEXT_EDITOR):
 		##Remove previous Canvas Widgets
 		if not self.activeMove:
 			self._moveAnchor = [mousePos[0] - self.myBbox[0], mousePos[1] - self.myBbox[1], self.myBbox[2] - mousePos[0], self.myBbox[3] - mousePos[1]]
-			self._textAnchor = [mousePos[0] - (self.myBbox[0]+self.text_offset), mousePos[1] - (self.myBbox[1]+10+self.text_offset)]
+			self._textAnchor = [mousePos[0] - (self.myBbox[0]+self.txtPad), mousePos[1] - (self.myBbox[1]+10+self.txtPad)]
 			self.activeMove = True
 		else:
-			self.__root.delete(self.__boxCanvasID)
-			self.__root.delete(self.__moveCanvasID)
+			self.__root.delete(self.__textContainerID)
+			self.__root.delete(self.__moveContainerID)
 			self.__root.delete(self._textCanvasID)
 
 			if self._moveAnchor != []:
 				self.myBbox = [mousePos[0]-self._moveAnchor[0], mousePos[1]-self._moveAnchor[1], mousePos[0]+self._moveAnchor[2], mousePos[1]+self._moveAnchor[3]]
 
 			##Create New Canvas Widgets
-			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
-			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self.__textContainerID  = self.__root.create_rectangle(self.myBbox)
+			self.__moveContainerID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
 			self._textCanvasID = self.__root.create_text(mousePos[0]-self._textAnchor[0], mousePos[1]-self._textAnchor[1], text=self.get_contents(), anchor="nw", font=self.get_myFontPackage())
 
 	def loadFromFile(self, currentItem):
@@ -290,9 +292,9 @@ class STICKY_NOTE(TEXT_EDITOR):
 	
 	def drawToScreen(self):
 		if not self._activeError:
-			self.__moveCanvasID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
-			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.text_offset, self.myBbox[1]+self.text_offset+10, anchor="nw", font=self._myFont, text=self._contents)
-			self.__boxCanvasID  = self.__root.create_rectangle(self.myBbox)
+			self.__moveContainerID = self.__root.create_rectangle(self.myBbox[0], self.myBbox[1], self.myBbox[2], self.myBbox[1]+10)
+			self._textCanvasID	= self.__root.create_text(self.myBbox[0]+self.txtPad, self.myBbox[1]+self.txtPad+10, anchor="nw", font=self._myFont, text=self._contents)
+			self.__textContainerID  = self.__root.create_rectangle(self.myBbox)
 			self._currLine = len(self._contentLines) - 1
 		else:
 			print("Could not Draw sticky note to screen")
@@ -301,7 +303,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		self._textCanvasID = ID
 
 	def set_boxID(self, ID):
-		self.__boxCanvasID = ID
+		self.__textContainerID = ID
 
 	def get_myLinkedList(self):
 		return self._linkedList
@@ -310,7 +312,7 @@ class STICKY_NOTE(TEXT_EDITOR):
 		return self._textCanvasID
 
 	def get_boxID(self):
-		return self.__boxCanvasID
+		return self.__textContainerID
 
 	def changeBBox(self, index:int, newValue:int):
 		"""

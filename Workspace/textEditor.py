@@ -9,6 +9,22 @@ __all__ = [
 	"STRING_EDITOR"
 ]
 
+class MY_CURSOR:
+	def __init__(self, fontHeight):
+		self._cursorCanvasID = None
+		pass
+	
+	def initCursor(self, startOfText):
+		print(f"Font Height: {self._myFontHeight}")
+		print(f"Coords (x1, y1, x2, y2) = ({startOfText[0]}, {startOfText[1]}, {startOfText[0]}, {startOfText[1]+self._myFontHeight})")
+		self._cursorCanvasID = self.__root.create_line(startOfText[0], startOfText[1], startOfText[0], startOfText[1]+self._myFontHeight)
+
+		pass
+	
+	def activeCursor(self):
+		pass
+
+
 class STRING_EDITOR:
 	def __init__(self, fontSize:int=11):
 		##String Information:
@@ -17,12 +33,12 @@ class STRING_EDITOR:
 		self._currentLine 	= 0		 ##Holds the currently active line.
 		self._textCanvasID  = None
 		self._wrapLength	= 200
-		self.toWrap		= False
-		self.finishedWord = False
+		self.toWrap			= False
+		self.finishedWord	= False
 
 		##Font Information:
-		self._myFont		= tkFont.nametofont("TkDefaultFont")
 		self._myFontSize	= fontSize
+		self._myFont		= tkFont.nametofont("TkDefaultFont")
 		self._myFontHeight	= self._myFont.metrics('linespace')
 
 	def writeToContents(self):
